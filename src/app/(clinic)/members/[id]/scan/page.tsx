@@ -7,8 +7,10 @@ import type { Category } from '@/types/test';
 import { Button } from '@/components/ui/Button';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { ResultsCard } from '@/components/scoring/ResultsCard';
+import { GameRunner } from '@/components/scan/GameRunner';
 import { batteryFor, sampleMetrics, type BatteryGame } from '@/modules/scoring/battery';
-import { dbg, dbgError } from '@/lib/debug';
+import { buildResultBody } from '@/modules/scan/raw-to-input';
+import { dbg, dbgError, isDebugEnabled } from '@/lib/debug';
 
 type ScanType = 'quick' | 'deep';
 type CreateResp = { assessment: { id: string; type: ScanType; status: string } };
@@ -29,6 +31,7 @@ function ScanFlow() {
   const [battery, setBattery] = useState<BatteryGame[]>([]);
   const [done, setDone] = useState<Record<number, { score: number; musculage: number }>>({});
   const [busy, setBusy] = useState(false);
+  const [running, setRunning] = useState<number | null>(null); // index of game in the camera runner
   const [final, setFinal] = useState<CompleteResp | null>(null);
 
   useEffect(() => {
@@ -64,20 +67,35 @@ function ScanFlow() {
     }
   }
 
-  async function recordGame(idx: number, game: BatteryGame) {
+  // Submit a /results body (from the camera runner's raw data, or simulated metrics).
+  async function submitResult(idx: number, body: Record<string, unknown>) {
     setBusy(true);
-    dbg('Scan:result', { idx, test: game.test_id });
+    dbg('Scan:result →', body);
     try {
-      const res = await apiClient.post<ResultResp>(`/api/v1/assessments/${assessmentId}/results`, sampleMetrics(game.test_id));
+      const res = await apiClient.post<ResultResp>(`/api/v1/assessments/${assessmentId}/results`, body);
       dbg('Scan:result ←', res);
       if (res.error || !res.data) {
         toast({ variant: 'error', title: 'Could not record result', message: res.error?.message });
         return;
       }
       setDone((d) => ({ ...d, [idx]: { score: res.data!.score, musculage: res.data!.musculage } }));
+    } catch (err) {
+      dbgError('Scan:result failed', err);
+      toast({ variant: 'error', title: 'Network error' });
     } finally {
       setBusy(false);
     }
+  }
+
+  // Camera scan finished for a game → map raw engine data → /results.
+  async function onRunnerComplete(idx: number, game: BatteryGame, raw: Record<string, unknown>) {
+    setRunning(null);
+    await submitResult(idx, buildResultBody(game.test_id, raw) as unknown as Record<string, unknown>);
+  }
+
+  // DEBUG-only fallback: record a simulated result without a camera.
+  function simulate(idx: number, game: BatteryGame) {
+    return submitResult(idx, sampleMetrics(game.test_id));
   }
 
   async function complete() {
@@ -125,8 +143,8 @@ function ScanFlow() {
 
       {phase === 'battery' && (
         <div className="mt-6 flex flex-col gap-4">
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-sm text-amber-300">
-            📷 Camera scan arrives in the next module — recording <strong>simulated</strong> results for now so the flow is end-to-end.
+          <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-400">
+            📷 Tap <strong className="text-white">Start</strong> on each game to run the camera scan. Allow camera access when prompted.
           </div>
           <div className="flex flex-col gap-2">
             {battery.map((g, i) => (
@@ -138,7 +156,18 @@ function ScanFlow() {
                 {done[i] ? (
                   <span className="text-sm text-green-400 tabular-nums">✓ {done[i].score}/100</span>
                 ) : (
-                  <Button size="sm" variant="secondary" loading={busy} onClick={() => recordGame(i, g)}>Record</Button>
+                  <div className="flex items-center gap-2">
+                    {isDebugEnabled && (
+                      <button
+                        onClick={() => simulate(i, g)}
+                        className="text-xs text-slate-500 hover:text-slate-300 underline"
+                        title="Dev only: record a simulated result without a camera"
+                      >
+                        simulate
+                      </button>
+                    )}
+                    <Button size="sm" variant="secondary" disabled={busy} onClick={() => setRunning(i)}>Start</Button>
+                  </div>
                 )}
               </div>
             ))}
@@ -148,6 +177,16 @@ function ScanFlow() {
             <Button disabled={!allDone} loading={busy} onClick={complete}>Complete scan</Button>
           </div>
         </div>
+      )}
+
+      {running !== null && battery[running] && (
+        <GameRunner
+          testId={battery[running].test_id}
+          name={battery[running].name}
+          durationSec={battery[running].durationSeconds}
+          onComplete={(raw) => onRunnerComplete(running, battery[running], raw)}
+          onCancel={() => setRunning(null)}
+        />
       )}
 
       {phase === 'done' && final && (

@@ -6,17 +6,17 @@ import type { TestId, Category } from '@/types/test';
  * MediaPipe camera (next module) will run these; for now the scan page records an
  * interim result per game using sampleMetrics().
  */
-export type BatteryGame = { test_id: TestId; name: string; category: Category };
+export type BatteryGame = { test_id: TestId; name: string; category: Category; durationSeconds: number };
 
 export const QUICK_BATTERY: BatteryGame[] = [
-  { test_id: 'BB1', name: 'Standing Balance', category: 'balance' },
+  { test_id: 'BB1', name: 'Standing Balance', category: 'balance', durationSeconds: 30 },
 ];
 
 export const DEEP_BATTERY: BatteryGame[] = [
-  { test_id: 'NN1', name: 'Ball Catch', category: 'reflex' },
-  { test_id: 'BB1', name: 'Pillar Stand', category: 'balance' },
-  { test_id: 'FA1', name: 'Shoulder Sunrise', category: 'rom' },
-  { test_id: 'KS1', name: 'Leg Skylift', category: 'mobility' },
+  { test_id: 'NN1', name: 'Ball Catch', category: 'reflex', durationSeconds: 30 },
+  { test_id: 'BB1', name: 'Pillar Stand', category: 'balance', durationSeconds: 30 },
+  { test_id: 'FA1', name: 'Shoulder Sunrise', category: 'rom', durationSeconds: 30 },
+  { test_id: 'KS1', name: 'Leg Skylift', category: 'mobility', durationSeconds: 30 },
 ];
 
 export function batteryFor(type: 'quick' | 'deep'): BatteryGame[] {
