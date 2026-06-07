@@ -109,7 +109,10 @@ function MembersList() {
           </div>
           <span className="text-white font-semibold text-sm">Members</span>
         </div>
-        <Button variant="primary" size="sm" onClick={() => router.push('/members/new')}>+ Add member</Button>
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.push('/activity')} className="text-slate-400 hover:text-white text-sm">Activity log</button>
+          <Button variant="primary" size="sm" onClick={() => router.push('/members/new')}>+ Add member</Button>
+        </div>
       </nav>
 
       <main className="max-w-5xl mx-auto px-6 py-8">
