@@ -10,7 +10,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
-    // Load .env.local so DB-gated tests can detect a real DATABASE_URL when present.
+    // Load .env.local first so DB-gated tests (RUN_DB_TESTS=true) get DATABASE_URL.
+    setupFiles: ['./tests/setup.env.ts'],
     env: { NODE_ENV: 'test' },
   },
 });
