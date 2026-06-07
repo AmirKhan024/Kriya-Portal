@@ -8,10 +8,15 @@ import { Modal } from '@/components/ui/Modal';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { MemberStatusBadge } from '@/components/members/MemberStatusBadge';
 import { GameEligibilityList } from '@/components/members/GameEligibilityList';
+import { Sparkline } from '@/components/ui-a/Chart';
+import { Badge } from '@/components/ui-a/Badge';
 import { PAIN_REGION_LABELS, CONSENT_METHODS, type ConsentMethod, type PainRegion } from '@/modules/members/constants';
 import { dbg, dbgError } from '@/lib/debug';
 
 type PainFlag = { id: string; region: string; severity: number; type: string; active: string };
+type Scan = { id: string; type: string; status: string; musculage: number | null; created_at: string; completed_at: string | null };
+type Activity = { id: string; type: string; score: number | null; duration_sec: number | null; completed_at: string; game_name: string | null };
+type TrendPoint = { date: string; musculage: number };
 type MemberDetail = {
   member: {
     id: string; name: string; mobile: string; age: number | null; sex: string | null;
@@ -37,6 +42,9 @@ function MemberRecord() {
   const [consentOpen, setConsentOpen] = useState(false);
   const [consentMethod, setConsentMethod] = useState<ConsentMethod>('verbal');
   const [savingConsent, setSavingConsent] = useState(false);
+  const [trends, setTrends] = useState<TrendPoint[]>([]);
+  const [scans, setScans] = useState<Scan[] | null>(null);
+  const [activities, setActivities] = useState<Activity[] | null>(null);
 
   async function load() {
     dbg('MemberRecord:load', { id });
@@ -58,8 +66,19 @@ function MemberRecord() {
       return;
     }
     load();
+    apiClient.get<TrendPoint[]>(`/api/v1/members/${id}/trends`).then((r) => { if (r.data) setTrends(r.data); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Lazy-load Scans / Activities when their tab is first opened.
+  useEffect(() => {
+    if (tab === 'Scans' && scans === null) {
+      apiClient.get<Scan[]>(`/api/v1/members/${id}/scans`).then((r) => setScans(r.data ?? []));
+    }
+    if (tab === 'Activities' && activities === null) {
+      apiClient.get<Activity[]>(`/api/v1/members/${id}/activities`).then((r) => setActivities(r.data ?? []));
+    }
+  }, [tab, id, scans, activities]);
 
   async function captureConsent() {
     setSavingConsent(true);
@@ -159,7 +178,7 @@ function MemberRecord() {
       {/* Tabs */}
       <div className="mt-6 flex gap-1 border-b border-white/10 overflow-x-auto">
         {TABS.map((t) => {
-          const enabled = t === 'Overview' || t === 'Pain & Games';
+          const enabled = t === 'Overview' || t === 'Pain & Games' || t === 'Scans' || t === 'Activities';
           return (
             <button
               key={t}
@@ -205,6 +224,19 @@ function MemberRecord() {
                 {canClinical ? 'Run a scan to assess movement health.' : 'Capture consent to unlock scan & prescription.'}
               </p>
             </Card>
+            <Card title="Musculage trend">
+              {trends.length >= 2 ? (
+                <div className="flex items-center gap-3">
+                  <Sparkline points={trends.map((t) => t.musculage)} />
+                  <span className="text-sm text-slate-400">
+                    {trends.length} scans · latest{' '}
+                    <span className="text-teal-400 font-semibold tabular-nums">{trends[trends.length - 1].musculage}</span>
+                  </span>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">Not enough scans yet for a trend.</p>
+              )}
+            </Card>
           </div>
         )}
 
@@ -223,6 +255,55 @@ function MemberRecord() {
               <GameEligibilityList memberId={id} />
             </Card>
           </div>
+        )}
+
+        {tab === 'Scans' && (
+          <Card title="Scan history">
+            {scans === null ? (
+              <p className="text-sm text-slate-500">Loading…</p>
+            ) : scans.length === 0 ? (
+              <p className="text-sm text-slate-500">No scans yet. Run a scan to assess movement health.</p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-white/5">
+                {scans.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between py-2.5 text-sm">
+                    <div>
+                      <span className="text-slate-300 capitalize">{s.type} scan</span>
+                      <span className="text-slate-500 text-xs ml-2">
+                        {new Date(s.completed_at ?? s.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-white tabular-nums">{s.musculage ?? '—'}</span>
+                      <Badge tone={s.status === 'completed' ? 'green' : 'amber'}>{s.status.replace('_', ' ')}</Badge>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        )}
+
+        {tab === 'Activities' && (
+          <Card title="Activity feed">
+            {activities === null ? (
+              <p className="text-sm text-slate-500">Loading…</p>
+            ) : activities.length === 0 ? (
+              <p className="text-sm text-slate-500">No sessions recorded yet.</p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-white/5">
+                {activities.map((a) => (
+                  <li key={a.id} className="flex items-center justify-between py-2.5 text-sm">
+                    <div>
+                      <span className="text-slate-300">{a.game_name ?? (a.type === 'video' ? 'Care video' : 'Game')}</span>
+                      <span className="text-slate-500 text-xs ml-2">{new Date(a.completed_at).toLocaleDateString()}</span>
+                    </div>
+                    <span className="text-white tabular-nums">{a.score != null ? `${a.score}` : '—'}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
         )}
       </div>
 

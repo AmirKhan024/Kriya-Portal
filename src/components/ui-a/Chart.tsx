@@ -25,3 +25,36 @@ export function MiniBar({
     </div>
   );
 }
+
+/** Tiny SVG line chart for a numeric series (e.g., Musculage over time). */
+export function Sparkline({
+  points,
+  width = 140,
+  height = 40,
+  stroke = '#2dd4bf',
+}: {
+  points: number[];
+  width?: number;
+  height?: number;
+  stroke?: string;
+}) {
+  if (points.length < 2) return null;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min || 1;
+  const pad = 3;
+  const stepX = (width - pad * 2) / (points.length - 1);
+  const coords = points.map((p, i) => {
+    const x = pad + i * stepX;
+    const y = pad + (height - pad * 2) * (1 - (p - min) / range);
+    return [x, y] as const;
+  });
+  const d = coords.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const [lastX, lastY] = coords[coords.length - 1];
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+      <path d={d} fill="none" stroke={stroke} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={lastX} cy={lastY} r={3} fill={stroke} />
+    </svg>
+  );
+}
