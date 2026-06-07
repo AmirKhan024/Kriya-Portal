@@ -10,6 +10,13 @@ export function isWatchComplete(percent: number): boolean {
   return percent >= WATCH_COMPLETE_PCT;
 }
 
+// Passthrough is attacker-influenced external data — guard ids before they reach a
+// uuid column query, so a malformed value degrades to null (skip) instead of a 500.
+const PG_UUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+function asUuid(v: unknown): string | null {
+  return typeof v === 'string' && PG_UUID.test(v) ? v : null;
+}
+
 export type MuxEvent =
   | { kind: 'asset.ready'; assetId: string | null; playbackId: string | null; videoId: string | null }
   | { kind: 'view.completed'; percent: number; memberId: string | null; videoId: string | null; clinicId: string | null }
@@ -36,7 +43,7 @@ export function parseMuxEvent(body: unknown): MuxEvent {
       kind: 'asset.ready',
       assetId: (d.id as string) ?? null,
       playbackId: playbacks[0]?.id ?? (d.playback_id as string) ?? null,
-      videoId: (pass.video_id as string) ?? null,
+      videoId: asUuid(pass.video_id),
     };
   }
 
@@ -51,9 +58,9 @@ export function parseMuxEvent(body: unknown): MuxEvent {
     return {
       kind: 'view.completed',
       percent: Number.isFinite(percent) ? percent : 0,
-      memberId: (pass.member_id as string) ?? null,
-      videoId: (pass.video_id as string) ?? null,
-      clinicId: (pass.clinic_id as string) ?? null,
+      memberId: asUuid(pass.member_id),
+      videoId: asUuid(pass.video_id),
+      clinicId: asUuid(pass.clinic_id),
     };
   }
 
