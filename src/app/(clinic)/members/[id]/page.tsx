@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { MemberStatusBadge } from '@/components/members/MemberStatusBadge';
+import { GameEligibilityList } from '@/components/members/GameEligibilityList';
 import { PAIN_REGION_LABELS, CONSENT_METHODS, type ConsentMethod, type PainRegion } from '@/modules/members/constants';
 import { dbg, dbgError } from '@/lib/debug';
 
@@ -126,7 +127,7 @@ function MemberRecord() {
             variant="secondary"
             disabled={!canClinical}
             title={canClinical ? undefined : 'Capture consent first'}
-            onClick={() => toast({ variant: 'info', title: 'Scan available in 1c', message: 'The scan module ships next.' })}
+            onClick={() => router.push(`/members/${id}/scan`)}
           >
             Run Scan
           </Button>
@@ -158,7 +159,7 @@ function MemberRecord() {
       {/* Tabs */}
       <div className="mt-6 flex gap-1 border-b border-white/10 overflow-x-auto">
         {TABS.map((t) => {
-          const enabled = t === 'Overview' || (t === 'Pain & Games' && data.pain_flags.length > 0);
+          const enabled = t === 'Overview' || t === 'Pain & Games';
           return (
             <button
               key={t}
@@ -208,12 +209,20 @@ function MemberRecord() {
         )}
 
         {tab === 'Pain & Games' && (
-          <Card title="Pain flags">
-            <ul className="flex flex-col gap-2">
-              {data.pain_flags.map((p) => <PainFlagRow key={p.id} flag={p} />)}
-            </ul>
-            <p className="text-xs text-slate-500 mt-3">Game eligibility verdicts arrive with the pain-gating engine (1c).</p>
-          </Card>
+          <div className="grid gap-4">
+            <Card title={`Pain flags (${data.pain_flags.length})`}>
+              {data.pain_flags.length === 0 ? (
+                <p className="text-sm text-slate-500">None recorded</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {data.pain_flags.map((p) => <PainFlagRow key={p.id} flag={p} />)}
+                </ul>
+              )}
+            </Card>
+            <Card title="Game eligibility">
+              <GameEligibilityList memberId={id} />
+            </Card>
+          </div>
         )}
       </div>
 
