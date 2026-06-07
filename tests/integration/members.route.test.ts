@@ -231,11 +231,13 @@ describe('GET /v1/members/:id', () => {
     h.select.set(consents, [{ id: 'c1', member_id: MEMBER_ID }]);
     h.select.set(pain_flags, [{ id: 'p1', region: 'lower_back', severity: 6, type: 'acute', active: 'true' }]);
     h.select.set(member_assignments, [{ id: 'a1', clinician_id: USER_ID }]);
+    h.select.set(users, [{ name: 'Dr. Arjun Mehta' }]);
     const res = await getMember(getReq(), { params: { id: MEMBER_ID } });
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.data.member.id).toBe(MEMBER_ID);
     expect(json.data.has_consent).toBe(true);
     expect(json.data.pain_flags).toHaveLength(1);
+    expect(json.data.assignment.clinician_name).toBe('Dr. Arjun Mehta'); // resolved, not a raw UUID
   });
 });

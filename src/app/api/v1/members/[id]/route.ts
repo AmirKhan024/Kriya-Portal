@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/server/db';
-import { members, consents, pain_flags, member_assignments } from '@/server/db/schema';
+import { members, consents, pain_flags, member_assignments, users } from '@/server/db/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import { getAuthedUser, withApiHandler, ApiError } from '@/server/auth/middleware';
 
@@ -58,13 +58,24 @@ export const GET = withApiHandler(async (request, context) => {
     .where(and(eq(member_assignments.member_id, memberId), isNull(member_assignments.ended_at)))
     .limit(1);
 
+  // Resolve the assigned clinician's name (avoid showing a raw UUID in the UI).
+  let assignment = currentAssignment[0] ?? null;
+  if (assignment) {
+    const clinician = await db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, assignment.clinician_id))
+      .limit(1);
+    assignment = { ...assignment, clinician_name: clinician[0]?.name ?? null } as typeof assignment & { clinician_name: string | null };
+  }
+
   return NextResponse.json({
     data: {
       member,
       consent: activeConsent[0] ?? null,
       has_consent: !!activeConsent[0],
       pain_flags: activePainFlags,
-      assignment: currentAssignment[0] ?? null,
+      assignment,
     },
     error: null,
   });

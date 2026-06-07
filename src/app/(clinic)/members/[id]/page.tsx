@@ -24,7 +24,7 @@ type MemberDetail = {
   };
   has_consent: boolean;
   pain_flags: PainFlag[];
-  assignment: { id: string; clinician_id: string } | null;
+  assignment: { id: string; clinician_id: string; clinician_name: string | null } | null;
 };
 
 const TABS = ['Overview', 'Pain & Games', 'Scans', 'Care Program', 'Activities', 'Prescriptions'] as const;
@@ -207,7 +207,9 @@ function MemberRecord() {
             </Card>
             <Card title="Assignment">
               <p className="text-sm text-slate-300">
-                {data.assignment ? <span className="font-mono text-xs">{data.assignment.clinician_id}</span> : <span className="text-slate-500">Unassigned</span>}
+                {data.assignment
+                  ? (data.assignment.clinician_name ?? <span className="text-slate-500">Clinician</span>)
+                  : <span className="text-slate-500">Unassigned</span>}
               </p>
             </Card>
             <Card title={`Pain flags (${data.pain_flags.length})`}>
