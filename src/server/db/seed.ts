@@ -218,6 +218,40 @@ async function seed() {
   console.log('  Template ID:', SEED_TEMPLATE_ID);
   console.log('  Template: Lower Back Recovery (published)');
 
+  // ── Phase 2a+3b seed data ─────────────────────────────────────────────────
+  const SEED_PHYSIO_ID = '00000000-0000-0000-0000-000000000013';
+
+  const physioHash = await bcrypt.hash('dev_physio_pass', 12);
+  await db.insert(users).values({
+    id:            SEED_PHYSIO_ID,
+    clinic_id:     SEED_CLINIC_ID,
+    branch_id:     SEED_BRANCH_ID,
+    email:         'physio@testclinic.dev',
+    name:          'Dr. Sana Khan',
+    password_hash: physioHash,
+    status:        'active',
+  }).onConflictDoNothing();
+
+  await db.insert(user_roles).values({
+    user_id:   SEED_PHYSIO_ID,
+    role:      'physio',
+    clinic_id: SEED_CLINIC_ID,
+    branch_id: SEED_BRANCH_ID,
+  }).onConflictDoNothing();
+
+  // Seed initial member assignment (close any existing open assignment first)
+  await db.insert(member_assignments).values({
+    id:           '30000000-0000-0000-0000-000000000001',
+    member_id:    SEED_MEMBER_ID,
+    clinician_id: SEED_CLINICIAN_ID,
+    clinic_id:    SEED_CLINIC_ID,
+    started_at:   new Date(),
+  }).onConflictDoNothing();
+
+  console.log('Phase 2a+3b seed complete:');
+  console.log('  physio@testclinic.dev / dev_physio_pass (role: physio)');
+  console.log('  SEED_PHYSIO_ID:', SEED_PHYSIO_ID);
+
   console.log('Seed complete.');
   process.exit(0);
 }

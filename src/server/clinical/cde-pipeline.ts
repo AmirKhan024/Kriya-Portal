@@ -1,13 +1,14 @@
-import Anthropic from '@anthropic-ai/sdk';
+import Groq from 'groq-sdk';
 import { runTreeWalker } from './tree-walker';
 import { getGameEligibility } from './eligibility-fixture';
 import type { StructuredFindings, TreeWalkerOutput } from './tree-walker';
 import type { GameEligibility } from './eligibility-fixture';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 // ── Stage 1: Extract structured findings from raw clinical data ──────────────
-// Claude identifies what it sees — it NEVER decides safety.
+// Groq identifies what it sees — it NEVER decides safety.
 async function extractFindings(input: {
   complaint: string;
   musculage: number;
@@ -15,16 +16,21 @@ async function extractFindings(input: {
   painFlags: { region: string; severity: number; type: string }[];
   memberAge: number;
 }): Promise<StructuredFindings> {
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+  const response = await groq.chat.completions.create({
+    model: GROQ_MODEL,
     max_tokens: 800,
-    system: `You are a clinical data extraction assistant for a physiotherapy platform.
+    temperature: 0,
+    messages: [
+      {
+        role: 'system',
+        content: `You are a clinical data extraction assistant for a physiotherapy platform.
 Extract structured clinical information from the patient data provided.
 Return ONLY valid JSON matching the schema exactly. No prose, no markdown, no explanation.
 Never diagnose. Never recommend treatment. Only extract what is explicitly present in the data.`,
-    messages: [{
-      role: 'user',
-      content: `Extract clinical findings from this patient data:
+      },
+      {
+        role: 'user',
+        content: `Extract clinical findings from this patient data:
 
 COMPLAINT: ${input.complaint}
 AGE: ${input.memberAge}
@@ -43,10 +49,11 @@ Return JSON matching this schema exactly:
   "aggravating_factors": ["string"],
   "relieving_factors": ["string"]
 }`,
-    }],
+      },
+    ],
   });
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '{}';
+  const text = response.choices[0]?.message?.content ?? '{}';
   try {
     return JSON.parse(text.replace(/```json|```/g, '').trim()) as StructuredFindings;
   } catch {
@@ -73,7 +80,7 @@ export type ProseSections = {
 };
 
 // ── Stage 4: Format the deterministic output as a readable clinical letter ───
-// Claude can only phrase — it CANNOT alter contraindications or eligibility verdicts.
+// Groq can only phrase — it CANNOT alter contraindications or eligibility verdicts.
 async function formatLetterProse(input: {
   memberName: string;
   memberAge: number;
@@ -88,17 +95,22 @@ async function formatLetterProse(input: {
   const { memberName, memberAge, clinicName, clinicianName, findings,
     treeWalkerOutput, eligibleGames, blockedGames, modifiedGames } = input;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+  const response = await groq.chat.completions.create({
+    model: GROQ_MODEL,
     max_tokens: 1200,
-    system: `You are a clinical letter writing assistant for a physiotherapy clinic.
+    temperature: 0,
+    messages: [
+      {
+        role: 'system',
+        content: `You are a clinical letter writing assistant for a physiotherapy clinic.
 Write professional, warm, and clear clinical letter sections.
 Return ONLY valid JSON. No markdown, no prose outside the JSON.
 Use clear language suitable for both clinicians and patients.
 Never add contraindications or game restrictions that are not in the input data.`,
-    messages: [{
-      role: 'user',
-      content: `Write these sections for a clinical letter for ${memberName}, age ${memberAge}.
+      },
+      {
+        role: 'user',
+        content: `Write these sections for a clinical letter for ${memberName}, age ${memberAge}.
 Clinic: ${clinicName}. Clinician: ${clinicianName}.
 
 CLINICAL DATA (do not add to or modify the safety content):
@@ -120,10 +132,11 @@ Return JSON with these keys (each value is 1-3 sentences, professional clinical 
   "program_rationale_prose": "Why this exercise approach was chosen for this patient",
   "safety_note_prose": "Safety note reminding patient this complements, not replaces, in-clinic care"
 }`,
-    }],
+      },
+    ],
   });
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '{}';
+  const text = response.choices[0]?.message?.content ?? '{}';
   try {
     return JSON.parse(text.replace(/```json|```/g, '').trim()) as ProseSections;
   } catch {
