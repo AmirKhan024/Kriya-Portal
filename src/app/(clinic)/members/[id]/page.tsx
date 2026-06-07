@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/Modal';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { MemberStatusBadge } from '@/components/members/MemberStatusBadge';
 import { GameEligibilityList } from '@/components/members/GameEligibilityList';
+import { NudgePanel } from '@/components/nudges/NudgePanel';
 import { Sparkline } from '@/components/ui-a/Chart';
 import { Badge } from '@/components/ui-a/Badge';
 import { PAIN_REGION_LABELS, CONSENT_METHODS, type ConsentMethod, type PainRegion } from '@/modules/members/constants';
@@ -27,7 +28,7 @@ type MemberDetail = {
   assignment: { id: string; clinician_id: string; clinician_name: string | null } | null;
 };
 
-const TABS = ['Overview', 'Pain & Games', 'Scans', 'Care Program', 'Activities', 'Prescriptions'] as const;
+const TABS = ['Overview', 'Pain & Games', 'Scans', 'Care Program', 'Activities', 'Nudges', 'Prescriptions'] as const;
 
 function MemberRecord() {
   const router = useRouter();
@@ -178,7 +179,7 @@ function MemberRecord() {
       {/* Tabs */}
       <div className="mt-6 flex gap-1 border-b border-white/10 overflow-x-auto">
         {TABS.map((t) => {
-          const enabled = t === 'Overview' || t === 'Pain & Games' || t === 'Scans' || t === 'Activities';
+          const enabled = t === 'Overview' || t === 'Pain & Games' || t === 'Scans' || t === 'Activities' || t === 'Nudges';
           return (
             <button
               key={t}
@@ -307,6 +308,8 @@ function MemberRecord() {
             )}
           </Card>
         )}
+
+        {tab === 'Nudges' && <NudgePanel memberId={id} />}
       </div>
 
       {/* Capture consent modal */}
