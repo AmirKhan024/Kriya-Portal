@@ -104,8 +104,8 @@ function MemberRecord() {
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-8">
-      <button onClick={() => router.back()} className="text-slate-400 hover:text-white text-sm mb-4 transition-colors">
-        ← Back
+      <button onClick={() => router.push('/members')} className="text-slate-400 hover:text-white text-sm mb-4 transition-colors">
+        ← All members
       </button>
 
       {/* Header */}
