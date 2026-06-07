@@ -16,7 +16,8 @@ export type EventType =
   | 'nudge.scheduled' | 'nudge.sent' | 'nudge.responded'
   | 'appointment.booked' | 'appointment.completed'
   | 'app.invited' | 'app.activated'
-  | 'member.retained_30d';
+  | 'member.retained_30d'
+  | 'program_template.published';
 
 export async function emit(
   type: EventType,

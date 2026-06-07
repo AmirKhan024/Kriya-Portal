@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { db } from '@/server/db';
 import { prescriptions, clinics, users, members } from '@/server/db/schema';

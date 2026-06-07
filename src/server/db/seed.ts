@@ -3,6 +3,7 @@ import { db } from './index';
 import {
   clinics, branches, entitlements, users, user_roles,
   members, consents, member_assignments, assessments, category_scores, pain_flags, games,
+  program_templates, program_phases, program_items,
 } from './schema';
 import bcrypt from 'bcryptjs';
 
@@ -172,6 +173,50 @@ async function seed() {
   console.log('  clinician@testclinic.dev / dev_clinician_pass (role: ortho)');
   console.log('  Seed member ID:', SEED_MEMBER_ID);
   console.log('  Seed assessment ID:', SEED_ASSESSMENT_ID);
+
+  // ── Phase 1e seed data ────────────────────────────────────────────────────
+  const SEED_TEMPLATE_ID       = '20000000-0000-0000-0000-000000000001';
+  const SEED_TEMPLATE_PHASE_ID = '20000000-0000-0000-0000-000000000002';
+
+  await db.insert(program_templates).values({
+    id: SEED_TEMPLATE_ID,
+    clinic_id: SEED_CLINIC_ID,
+    created_by: SEED_ADMIN_ID,
+    name: 'Lower Back Recovery — 6 Week Plan',
+    segment: 'care',
+    status: 'published',
+    published_at: new Date(),
+  }).onConflictDoNothing();
+
+  await db.insert(program_phases).values({
+    id: SEED_TEMPLATE_PHASE_ID,
+    template_id: SEED_TEMPLATE_ID,
+    order: 1,
+    name: 'Phase 1 — Foundation (Weeks 1–3)',
+    duration_weeks: 3,
+  }).onConflictDoNothing();
+
+  // Template items: Bird Dog (lower_back) + Dead Bug (lower_back) + Standing Balance (no lower_back)
+  // No pain gating on templates — gating is applied at member clone time
+  for (const gameId of [
+    '10000000-0000-0000-0000-000000000001', // Bird Dog
+    '10000000-0000-0000-0000-000000000002', // Dead Bug
+    '10000000-0000-0000-0000-000000000004', // Standing Balance
+  ]) {
+    await db.insert(program_items).values({
+      id: crypto.randomUUID(),
+      phase_id: SEED_TEMPLATE_PHASE_ID,
+      clinic_id: SEED_CLINIC_ID,
+      game_id: gameId,
+      frequency_per_week: 3,
+      gating_verdict: 'eligible',
+      is_overridden: false,
+    }).onConflictDoNothing();
+  }
+
+  console.log('Phase 1e seed complete:');
+  console.log('  Template ID:', SEED_TEMPLATE_ID);
+  console.log('  Template: Lower Back Recovery (published)');
 
   console.log('Seed complete.');
   process.exit(0);
