@@ -17,11 +17,15 @@ export const tokenStore = {
     if (typeof window === 'undefined') return;
     localStorage.setItem(ACCESS_KEY, access);
     localStorage.setItem(REFRESH_KEY, refresh);
+    // Also mirror the access token into a cookie so the edge middleware
+    // (src/middleware.ts) — which guards /clinic & /ops by cookie — lets pages through.
+    document.cookie = `kriya_access_token=${access}; path=/; max-age=900; samesite=lax`;
   },
   clear(): void {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
+    document.cookie = 'kriya_access_token=; path=/; max-age=0; samesite=lax';
   },
 };
 

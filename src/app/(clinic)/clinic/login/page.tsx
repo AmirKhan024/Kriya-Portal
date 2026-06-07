@@ -10,7 +10,7 @@ export default function ClinicLoginPage() {
 
   function handleSuccess(data: { access_token: string; refresh_token: string; user: Record<string, unknown> }) {
     tokenStore.set(data.access_token, data.refresh_token);
-    router.push('/clinic/staff');
+    router.push('/members');
   }
 
   return (
