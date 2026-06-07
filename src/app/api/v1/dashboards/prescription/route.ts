@@ -6,16 +6,15 @@ import {
 } from '@/server/db/schema';
 import { eq, and, gte, lte, isNotNull, count, sql } from 'drizzle-orm';
 import {
-  getAuthedUser, requireRole, requireSameTenant, withApiHandler,
+  getAuthedUser, requireRole, withApiHandler, ApiError,
 } from '@/server/auth/middleware';
 
 export const GET = withApiHandler(async (request) => {
   const user = await getAuthedUser(request);
 
   requireRole(user, ['ortho', 'physio', 'clinic_admin']);
-  requireSameTenant(user, user.clinic_id ?? '');
-
-  const clinicId = user.clinic_id!;
+  if (!user.clinic_id) throw new ApiError('FORBIDDEN', 'No clinic context', 403);
+  const clinicId = user.clinic_id;
   const url = new URL(request.url);
   const sp = url.searchParams;
 

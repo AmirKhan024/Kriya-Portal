@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
 import { useClinicId, useCanDo } from '@/hooks/useRole';
@@ -33,6 +33,44 @@ const MODULE_INFO: { key: keyof NonNullable<SettingsData['entitlements']>; label
   { key: 'custom_branding', label: 'Custom Branding', desc: 'Clinic logo on prescription letters.' },
   { key: 'iot',             label: 'IoT Devices',     desc: 'Wearable sensor integration.' },
 ];
+
+type IotData = { device_count: number; message: string };
+
+function IotPanel({ clinicId }: { clinicId: string }) {
+  const [iotData, setIotData] = useState<IotData | null>(null);
+
+  const load = useCallback(() => {
+    if (!clinicId) return;
+    apiClient.get<IotData>(`/api/v1/clinics/${clinicId}/iot`).then(res => {
+      if (res.data) setIotData(res.data);
+    });
+  }, [clinicId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (!iotData) {
+    return <div className="h-16 bg-white/5 rounded-xl animate-pulse" />;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+        <span className="text-slate-300 text-sm">Paired Devices</span>
+        <span className="text-white font-semibold">{iotData.device_count}</span>
+      </div>
+      <p className="text-slate-500 text-sm">{iotData.message}</p>
+      <div className="flex items-center gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+        <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span className="text-amber-300 text-xs">
+          Full IoT device management is coming in the next release. Contact support to set up device pairing.
+        </span>
+      </div>
+    </div>
+  );
+}
 
 function SettingsPageInner() {
   const router = useRouter();
@@ -374,6 +412,25 @@ function SettingsPageInner() {
             Request Upgrade
           </Button>
         </div>
+
+        {/* ── Section 4: IoT Devices (only when entitlement is on) ─────────── */}
+        {ent?.iot && (
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-teal-400/10 border border-teal-400/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-white font-semibold">IoT Devices</h2>
+                <p className="text-slate-400 text-sm">Connected wearable sensors and devices</p>
+              </div>
+            </div>
+            {clinicId && <IotPanel clinicId={clinicId} />}
+          </div>
+        )}
       </main>
 
       {/* ── Disable branch confirm modal ─────────────────────────────────── */}

@@ -252,6 +252,51 @@ async function seed() {
   console.log('  physio@testclinic.dev / dev_physio_pass (role: physio)');
   console.log('  SEED_PHYSIO_ID:', SEED_PHYSIO_ID);
 
+  // ── Final sprint: extra members for list page testing ───────────────────
+  const seedExtraMembers = [
+    {
+      id:        '00000000-0000-0000-0000-000000000020',
+      mobile:    '9876543211',
+      name:      'Priya Sharma',
+      age:       32,
+      sex:       'female' as const,
+      segment:   'care' as const,
+      status:    'new' as const,
+      complaint: 'Knee pain, difficulty climbing stairs',
+    },
+    {
+      id:        '00000000-0000-0000-0000-000000000021',
+      mobile:    '9876543212',
+      name:      'Amit Desai',
+      age:       45,
+      sex:       'male' as const,
+      segment:   'care' as const,
+      status:    'assessed' as const,
+      complaint: 'Chronic shoulder pain, office worker',
+    },
+    {
+      id:        '00000000-0000-0000-0000-000000000022',
+      mobile:    '9876543213',
+      name:      'Sunita Rao',
+      age:       28,
+      sex:       'female' as const,
+      segment:   'wellness' as const,
+      status:    'on_program' as const,
+      complaint: null,
+    },
+  ];
+
+  for (const m of seedExtraMembers) {
+    await db.insert(members).values({
+      ...m,
+      clinic_id:  SEED_CLINIC_ID,
+      branch_id:  SEED_BRANCH_ID,
+      created_at: new Date(),
+      updated_at: new Date(),
+    }).onConflictDoNothing();
+  }
+  console.log(`Seeded ${seedExtraMembers.length} additional members for list testing`);
+
   console.log('Seed complete.');
   process.exit(0);
 }
