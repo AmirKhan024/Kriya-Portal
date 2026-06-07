@@ -110,6 +110,7 @@ function MembersList() {
           <span className="text-white font-semibold text-sm">Members</span>
         </div>
         <div className="flex items-center gap-4">
+          <button onClick={() => router.push('/analytics')} className="text-slate-400 hover:text-white text-sm">Analytics</button>
           <button onClick={() => router.push('/activity')} className="text-slate-400 hover:text-white text-sm">Activity log</button>
           <Button variant="primary" size="sm" onClick={() => router.push('/members/new')}>+ Add member</Button>
         </div>
