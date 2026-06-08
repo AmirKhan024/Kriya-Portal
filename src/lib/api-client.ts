@@ -1,6 +1,7 @@
 'use client';
 
 import type { ApiResponse } from '@/types/api';
+import { loadSessionUser } from '@/store/auth';
 
 const ACCESS_KEY  = 'kriya_access_token';
 const REFRESH_KEY = 'kriya_refresh_token';
@@ -83,8 +84,9 @@ async function request<T>(
     } else {
       tokenStore.clear();
       if (typeof window !== 'undefined') {
-        // Bounce to the portal the user is actually in (ops vs clinic).
-        window.location.href = window.location.pathname.startsWith('/ops') ? '/ops/login' : '/clinic/login';
+        // Bounce to the right portal by role — ops console pages have no /ops URL prefix,
+        // so URL detection is unreliable; use the persisted session user instead.
+        window.location.href = loadSessionUser()?.role === 'ops' ? '/ops/login' : '/clinic/login';
       }
       return { data: null, error: { code: 'AUTH_REQUIRED', message: 'Session expired' } };
     }

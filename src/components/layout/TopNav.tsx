@@ -15,7 +15,8 @@ const ROLE_LABEL: Record<string, string> = {
 /** Role-appropriate top-level destinations. */
 function linksForRole(role: string): NavLink[] {
   if (role === 'ops') {
-    return [{ label: 'Clinics', href: '/ops/clinics' }, { label: 'Videos', href: '/ops/videos' }];
+    // (ops) route group is stripped from URLs → console pages are /clinics and /videos.
+    return [{ label: 'Clinics', href: '/clinics' }, { label: 'Videos', href: '/videos' }];
   }
   const base: NavLink[] = [
     { label: 'Members', href: '/members' },
