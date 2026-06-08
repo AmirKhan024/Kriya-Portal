@@ -73,7 +73,11 @@ export const POST = withApiHandler(async (request) => {
   });
   const refresh_token = await signRefreshToken(sessionId, user.id);
 
-  await emit('user.activated', user.id, clinic_id, null, {});
+  try {
+    await emit('user.activated', user.id, clinic_id, null, {});
+  } catch (emitErr) {
+    console.error('[Activate] emit user.activated failed (non-fatal):', emitErr);
+  }
 
   const res: ApiResponse<{
     access_token: string;

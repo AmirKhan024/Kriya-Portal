@@ -132,12 +132,16 @@ export const POST = withApiHandler(async (request) => {
     .set({ seats_used: 1 })
     .where(eq(entitlements.clinic_id, clinicId));
 
-  await emit('clinic.provisioned', user.id, clinicId, `clinic:${clinicId}`, {
-    name: body.name, city: body.city,
-  });
-  await emit('user.invited', user.id, clinicId, `user:${adminId}`, {
-    email: body.admin_email, role: 'clinic_admin',
-  });
+  try {
+    await emit('clinic.provisioned', user.id, clinicId, `clinic:${clinicId}`, {
+      name: body.name, city: body.city,
+    });
+    await emit('user.invited', user.id, clinicId, `user:${adminId}`, {
+      email: body.admin_email, role: 'clinic_admin',
+    });
+  } catch (emitErr) {
+    console.error('[Clinics] emit failed (non-fatal):', emitErr);
+  }
 
   return NextResponse.json({
     data: {

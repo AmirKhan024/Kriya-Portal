@@ -57,10 +57,14 @@ export const PATCH = withApiHandler(async (request, context) => {
 
   invalidateEntitlementCache(clinicId);
 
-  await emit('entitlement.changed', user.id, clinicId, `clinic:${clinicId}`, {
-    before: current,
-    after: { ...current, ...updates },
-  });
+  try {
+    await emit('entitlement.changed', user.id, clinicId, `clinic:${clinicId}`, {
+      before: current,
+      after: { ...current, ...updates },
+    });
+  } catch (emitErr) {
+    console.error('[Entitlements] emit failed (non-fatal):', emitErr);
+  }
 
   const [updated] = await db.select().from(entitlements).where(eq(entitlements.clinic_id, clinicId)).limit(1);
 

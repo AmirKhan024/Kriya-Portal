@@ -76,6 +76,9 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const dismiss = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -86,17 +89,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => [...prev, { ...opts, id }]);
   }, []);
 
-  const portal =
-    typeof window !== 'undefined'
-      ? createPortal(
-          <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
-            {toasts.map((t) => (
-              <ToastItem key={t.id} toast={t} onDismiss={dismiss} />
-            ))}
-          </div>,
-          document.body
-        )
-      : null;
+  const portal = mounted
+    ? createPortal(
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+          {toasts.map((t) => (
+            <ToastItem key={t.id} toast={t} onDismiss={dismiss} />
+          ))}
+        </div>,
+        document.body
+      )
+    : null;
 
   return (
     <ToastContext.Provider value={{ toast }}>

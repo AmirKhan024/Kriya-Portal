@@ -25,5 +25,13 @@ export const POST = withApiHandler(async (request) => {
   }
 
   const res: ApiResponse<{ success: boolean }> = { data: { success: true }, error: null };
-  return NextResponse.json(res, { status: 200 });
+  const response = NextResponse.json(res, { status: 200 });
+  response.cookies.set('kriya_access_token', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  });
+  return response;
 });

@@ -50,13 +50,17 @@ export const POST = withApiHandler(async (request, context) => {
     .set({ status: 'sent', sent_at: now })
     .where(eq(prescriptions.id, prescriptionId));
 
-  await emit('prescription.sent', user.id, prescription.clinic_id, `member:${prescription.member_id}`, {
-    channel,
-    prescription_id: prescription.id,
-  });
-  await emit('app.invited', user.id, prescription.clinic_id, `member:${prescription.member_id}`, {
-    qr_code: prescription.qr_code,
-  });
+  try {
+    await emit('prescription.sent', user.id, prescription.clinic_id, `member:${prescription.member_id}`, {
+      channel,
+      prescription_id: prescription.id,
+    });
+    await emit('app.invited', user.id, prescription.clinic_id, `member:${prescription.member_id}`, {
+      qr_code: prescription.qr_code,
+    });
+  } catch (emitErr) {
+    console.error('[PrescriptionSend] emit failed (non-fatal):', emitErr);
+  }
 
   return NextResponse.json({
     data: { status: 'sent', channel, message: 'Prescription sent (dev stub)' },

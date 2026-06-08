@@ -148,10 +148,14 @@ export const POST = withApiHandler(async (request) => {
     .where(eq(members.id, member.id));
 
   // 11. Emit events
-  await emit('prescription.generated', user.id, member.clinic_id, `member:${member.id}`, {
-    prescription_id: prescriptionId,
-    member_id: member.id,
-  });
+  try {
+    await emit('prescription.generated', user.id, member.clinic_id, `member:${member.id}`, {
+      prescription_id: prescriptionId,
+      member_id: member.id,
+    });
+  } catch (emitErr) {
+    console.error('[Prescriptions] emit failed (non-fatal):', emitErr);
+  }
 
   return NextResponse.json({
     data: {

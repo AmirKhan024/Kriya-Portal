@@ -109,10 +109,14 @@ export const POST = withApiHandler(async (request, context) => {
     started_at:   startedAt,
   });
 
-  await emit('member.assigned', user.id, clinicId, `member:${body.member_id}`, {
-    from: prev?.clinician_id ?? null,
-    to:   body.clinician_id,
-  });
+  try {
+    await emit('member.assigned', user.id, clinicId, `member:${body.member_id}`, {
+      from: prev?.clinician_id ?? null,
+      to:   body.clinician_id,
+    });
+  } catch (emitErr) {
+    console.error('[Assignments] emit failed (non-fatal):', emitErr);
+  }
 
   return NextResponse.json(
     { data: { id: newId, member_id: body.member_id, clinician_id: body.clinician_id, started_at: startedAt }, error: null },

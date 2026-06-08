@@ -34,6 +34,8 @@ export function UserMenu() {
       } catch {}
     }
     tokenStore.clear();
+    // Belt-and-suspenders: also clear cookie client-side in case API call failed
+    document.cookie = 'kriya_access_token=; path=/; max-age=0; SameSite=Lax';
     router.push(role === 'ops' ? '/ops/login' : '/clinic/login');
   }
 

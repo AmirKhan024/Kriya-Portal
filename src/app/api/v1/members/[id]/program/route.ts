@@ -222,10 +222,14 @@ export const POST = withApiHandler(async (request, context) => {
     .set({ status: 'on_program', updated_at: new Date() })
     .where(eq(members.id, memberId));
 
-  await emit('program.assigned', user.id, member.clinic_id, `member:${memberId}`, {
-    instance_id: instanceId,
-    phase_count: phasesToCreate.length,
-  });
+  try {
+    await emit('program.assigned', user.id, member.clinic_id, `member:${memberId}`, {
+      instance_id: instanceId,
+      phase_count: phasesToCreate.length,
+    });
+  } catch (emitErr) {
+    console.error('[ProgramAssign] emit failed (non-fatal):', emitErr);
+  }
 
   const [instance] = await db.select().from(program_instances).where(eq(program_instances.id, instanceId)).limit(1);
   const phases = await loadProgramWithPhases(instanceId);

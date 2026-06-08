@@ -82,9 +82,13 @@ export const POST = withApiHandler(async (request, context) => {
     .set({ seats_used: ent.seats_used + 1, updated_at: new Date() })
     .where(eq(entitlements.clinic_id, clinicId));
 
-  await emit('user.invited', user.id, clinicId, `user:${newUserId}`, {
-    email: body.email, role: body.role,
-  });
+  try {
+    await emit('user.invited', user.id, clinicId, `user:${newUserId}`, {
+      email: body.email, role: body.role,
+    });
+  } catch (emitErr) {
+    console.error('[Invite] emit user.invited failed (non-fatal):', emitErr);
+  }
 
   return NextResponse.json({
     data: {

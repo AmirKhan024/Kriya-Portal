@@ -27,6 +27,7 @@ export const tokenStore = {
 
 type RequestOptions = {
   headers?: Record<string, string>;
+  skipAuthRefresh?: boolean;
 };
 
 async function refreshTokens(): Promise<string | null> {
@@ -69,13 +70,28 @@ async function request<T>(
     body: body !== undefined ? JSON.stringify(body) : undefined,
   };
 
-  let res = await fetch(path, fetchOptions);
+  let res: Response;
+  try {
+    res = await fetch(path, fetchOptions);
+  } catch {
+    return {
+      data: null,
+      error: { code: 'NETWORK_ERROR', message: 'Cannot reach the server. Check your connection and that the dev server is running.' },
+    };
+  }
 
-  if (res.status === 401) {
+  if (res.status === 401 && !options.skipAuthRefresh) {
     const newToken = await refreshTokens();
     if (newToken) {
       headers['Authorization'] = `Bearer ${newToken}`;
-      res = await fetch(path, { ...fetchOptions, headers });
+      try {
+        res = await fetch(path, { ...fetchOptions, headers });
+      } catch {
+        return {
+          data: null,
+          error: { code: 'NETWORK_ERROR', message: 'Cannot reach the server. Check your connection.' },
+        };
+      }
     } else {
       tokenStore.clear();
       if (typeof window !== 'undefined') {

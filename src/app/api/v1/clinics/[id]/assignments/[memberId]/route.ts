@@ -74,10 +74,14 @@ export const PATCH = withApiHandler(async (request, context) => {
     started_at:   startedAt,
   });
 
-  await emit('member.assigned', user.id, clinicId, `member:${memberId}`, {
-    from: prev?.clinician_id ?? null,
-    to:   clinician_id,
-  });
+  try {
+    await emit('member.assigned', user.id, clinicId, `member:${memberId}`, {
+      from: prev?.clinician_id ?? null,
+      to:   clinician_id,
+    });
+  } catch (emitErr) {
+    console.error('[MemberAssignment] emit failed (non-fatal):', emitErr);
+  }
 
   return NextResponse.json({
     data: { id: newId, member_id: memberId, clinician_id, started_at: startedAt },
@@ -110,7 +114,11 @@ export const DELETE = withApiHandler(async (request, context) => {
     .set({ ended_at: new Date() })
     .where(eq(member_assignments.id, existing.id));
 
-  await emit('member.assigned', user.id, clinicId, `member:${memberId}`, { action: 'unassigned' });
+  try {
+    await emit('member.assigned', user.id, clinicId, `member:${memberId}`, { action: 'unassigned' });
+  } catch (emitErr) {
+    console.error('[MemberAssignment] emit failed (non-fatal):', emitErr);
+  }
 
   return NextResponse.json({ data: { ended: true }, error: null });
 });

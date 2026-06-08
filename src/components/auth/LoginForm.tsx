@@ -32,13 +32,16 @@ export function LoginForm({ portalLabel, onSuccess }: LoginFormProps) {
         access_token: string;
         refresh_token: string;
         user: Record<string, unknown>;
-      }>('/api/v1/auth/login', { email, password });
+      }>('/api/v1/auth/login', { email, password }, { skipAuthRefresh: true });
 
       if (res.error || !res.data) {
         toast({ variant: 'error', title: 'Login failed', message: res.error?.message ?? 'Unknown error' });
         return;
       }
       onSuccess(res.data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+      toast({ variant: 'error', title: 'Login failed', message });
     } finally {
       setLoading(false);
     }

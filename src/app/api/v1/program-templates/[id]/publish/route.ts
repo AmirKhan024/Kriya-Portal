@@ -59,9 +59,13 @@ export const POST = withApiHandler(async (request, context) => {
     .set({ status: 'published', published_at: publishedAt })
     .where(eq(program_templates.id, templateId));
 
-  await emit('program_template.published', user.id, template.clinic_id, `template:${templateId}`, {
-    name: template.name,
-  });
+  try {
+    await emit('program_template.published', user.id, template.clinic_id, `template:${templateId}`, {
+      name: template.name,
+    });
+  } catch (emitErr) {
+    console.error('[TemplatePublish] emit failed (non-fatal):', emitErr);
+  }
 
   return NextResponse.json({
     data: { id: templateId, status: 'published', published_at: publishedAt },

@@ -1,6 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose';
 import type { JwtPayload, RefreshTokenPayload, InviteTokenPayload } from '@/types/auth';
 
+(['ACCESS_TOKEN_SECRET', 'REFRESH_TOKEN_SECRET', 'INVITE_TOKEN_SECRET'] as const).forEach((key) => {
+  if (!process.env[key]) {
+    console.error(`[Auth] WARNING: Missing env var ${key}. Token signing/verification will fail. Check .env.local`);
+  }
+});
+
 function accessKey() {
   return new TextEncoder().encode(process.env.ACCESS_TOKEN_SECRET!);
 }

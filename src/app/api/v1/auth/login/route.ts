@@ -63,7 +63,11 @@ export const POST = withApiHandler(async (request) => {
   const refresh_token = await signRefreshToken(sessionId, user.id);
 
   const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
-  await emit('user.login', user.id, user.clinic_id ?? null, null, { ip });
+  try {
+    await emit('user.login', user.id, user.clinic_id ?? null, null, { ip });
+  } catch (emitErr) {
+    console.error('[Login] emit user.login failed (non-fatal):', emitErr);
+  }
 
   const res: ApiResponse<{
     access_token: string;
@@ -78,5 +82,14 @@ export const POST = withApiHandler(async (request) => {
     error: null,
   };
 
-  return NextResponse.json(res, { status: 200 });
+  const ACCESS_TTL = Number(process.env.ACCESS_TOKEN_TTL_SECONDS ?? 900);
+  const response = NextResponse.json(res, { status: 200 });
+  response.cookies.set('kriya_access_token', access_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: ACCESS_TTL,
+  });
+  return response;
 });

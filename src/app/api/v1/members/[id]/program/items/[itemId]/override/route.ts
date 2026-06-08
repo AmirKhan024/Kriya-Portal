@@ -77,11 +77,15 @@ export const POST = withApiHandler(async (request, context) => {
     reason: body.reason,
   });
 
-  await emit('painlock.overridden', user.id, member.clinic_id, `member:${memberId}`, {
-    item_id: itemId,
-    game_id: item.game_id,
-    reason: body.reason,
-  });
+  try {
+    await emit('painlock.overridden', user.id, member.clinic_id, `member:${memberId}`, {
+      item_id: itemId,
+      game_id: item.game_id,
+      reason: body.reason,
+    });
+  } catch (emitErr) {
+    console.error('[PainOverride] emit failed (non-fatal):', emitErr);
+  }
 
   return NextResponse.json({
     data: { item_id: itemId, is_overridden: true, override_reason: body.reason },

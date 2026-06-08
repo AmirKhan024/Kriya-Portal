@@ -1,4 +1,4 @@
-import 'dotenv/config';
+// env loaded by dotenv-cli via npm run seed
 import { db } from './index';
 import {
   clinics, branches, entitlements, users, user_roles,
@@ -45,7 +45,10 @@ async function seed() {
     name: 'Kriya Ops',
     password_hash: opsHash,
     status: 'active',
-  }).onConflictDoNothing();
+  }).onConflictDoUpdate({
+    target: users.id,
+    set: { password_hash: opsHash, status: 'active' },
+  });
 
   const adminHash = await bcrypt.hash('dev_admin_pass', 12);
   await db.insert(users).values({
@@ -56,7 +59,10 @@ async function seed() {
     name: 'Clinic Admin',
     password_hash: adminHash,
     status: 'active',
-  }).onConflictDoNothing();
+  }).onConflictDoUpdate({
+    target: users.id,
+    set: { password_hash: adminHash, status: 'active' },
+  });
 
   await db.insert(user_roles).values({
     user_id: SEED_OPS_ID,
@@ -84,7 +90,10 @@ async function seed() {
     name: 'Dr. Arjun Mehta',
     password_hash: clinicianHash,
     status: 'active',
-  }).onConflictDoNothing();
+  }).onConflictDoUpdate({
+    target: users.id,
+    set: { password_hash: clinicianHash, status: 'active' },
+  });
 
   await db.insert(user_roles).values({
     user_id: SEED_CLINICIAN_ID,
@@ -230,7 +239,10 @@ async function seed() {
     name:          'Dr. Sana Khan',
     password_hash: physioHash,
     status:        'active',
-  }).onConflictDoNothing();
+  }).onConflictDoUpdate({
+    target: users.id,
+    set: { password_hash: physioHash, status: 'active' },
+  });
 
   await db.insert(user_roles).values({
     user_id:   SEED_PHYSIO_ID,

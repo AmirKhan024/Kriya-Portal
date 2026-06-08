@@ -102,12 +102,16 @@ export const PATCH = withApiHandler(async (request, context) => {
         });
       }
 
-      await emit('member.assigned', user.id, clinicId, null, {
-        bulk:           true,
-        from_clinician: userId,
-        to_clinician:   reassign_to,
-        member_count:   openAssignments.length,
-      });
+      try {
+        await emit('member.assigned', user.id, clinicId, null, {
+          bulk:           true,
+          from_clinician: userId,
+          to_clinician:   reassign_to,
+          member_count:   openAssignments.length,
+        });
+      } catch (emitErr) {
+        console.error('[StaffUser] emit member.assigned failed (non-fatal):', emitErr);
+      }
     }
     // ── End bulk reassign ────────────────────────────────────────────────────
 
@@ -121,9 +125,13 @@ export const PATCH = withApiHandler(async (request, context) => {
 
   await db.update(users).set({ status }).where(eq(users.id, userId));
 
-  await emit('access.scope_changed', user.id, clinicId, `user:${userId}`, {
-    action: status, target: userId,
-  });
+  try {
+    await emit('access.scope_changed', user.id, clinicId, `user:${userId}`, {
+      action: status, target: userId,
+    });
+  } catch (emitErr) {
+    console.error('[StaffUser] emit access.scope_changed failed (non-fatal):', emitErr);
+  }
 
   return NextResponse.json({ data: { id: userId, status }, error: null });
 });

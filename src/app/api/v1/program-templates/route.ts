@@ -111,10 +111,14 @@ export const POST = withApiHandler(async (request) => {
 
   await insertTemplatePhases(templateId, user.clinic_id, body.phases, gameMap);
 
-  await emit('program.customized', user.id, user.clinic_id, `template:${templateId}`, {
-    action: 'template_created',
-    template_id: templateId,
-  });
+  try {
+    await emit('program.customized', user.id, user.clinic_id, `template:${templateId}`, {
+      action: 'template_created',
+      template_id: templateId,
+    });
+  } catch (emitErr) {
+    console.error('[ProgramTemplates] emit failed (non-fatal):', emitErr);
+  }
 
   const [template] = await db
     .select()

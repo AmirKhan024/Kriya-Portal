@@ -111,11 +111,15 @@ export const POST = withApiHandler(async (request, context) => {
     is_overridden: false,
   });
 
-  await emit('program.customized', user.id, member.clinic_id, `member:${memberId}`, {
-    action: 'add_item',
-    game_id: body.game_id,
-    phase_id: body.phase_id,
-  });
+  try {
+    await emit('program.customized', user.id, member.clinic_id, `member:${memberId}`, {
+      action: 'add_item',
+      game_id: body.game_id,
+      phase_id: body.phase_id,
+    });
+  } catch (emitErr) {
+    console.error('[ProgramItems] emit failed (non-fatal):', emitErr);
+  }
 
   return NextResponse.json({
     data: {

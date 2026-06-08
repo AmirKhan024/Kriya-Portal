@@ -49,10 +49,14 @@ export const DELETE = withApiHandler(async (request, context) => {
 
   await db.delete(program_items).where(eq(program_items.id, itemId));
 
-  await emit('program.customized', user.id, member.clinic_id, `member:${memberId}`, {
-    action: 'remove_item',
-    item_id: itemId,
-  });
+  try {
+    await emit('program.customized', user.id, member.clinic_id, `member:${memberId}`, {
+      action: 'remove_item',
+      item_id: itemId,
+    });
+  } catch (emitErr) {
+    console.error('[ProgramItem] emit failed (non-fatal):', emitErr);
+  }
 
   return NextResponse.json({ data: { deleted: true }, error: null });
 });

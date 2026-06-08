@@ -108,9 +108,13 @@ export const POST = withApiHandler(async (request, context) => {
     }
   }
 
-  await emit('phase.advanced', user.id, member.clinic_id, `member:${memberId}`, {
-    new_version: oldInstance.version + 1,
-  });
+  try {
+    await emit('phase.advanced', user.id, member.clinic_id, `member:${memberId}`, {
+      new_version: oldInstance.version + 1,
+    });
+  } catch (emitErr) {
+    console.error('[ProgramPush] emit failed (non-fatal):', emitErr);
+  }
 
   // Return new program
   const [newInstance] = await db
