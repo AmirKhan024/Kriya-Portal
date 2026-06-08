@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui-a/Badge';
 import { Table, type Column } from '@/components/ui-a/Table';
 import { ALL_EVENT_TYPES, eventLabel, eventTone } from '@/modules/events/display';
+import { TopNav } from '@/components/layout/TopNav';
 import { dbg } from '@/lib/debug';
 
 type EventRow = {
@@ -124,18 +125,7 @@ function ActivityLog() {
 
   return (
     <div>
-      <nav className="border-b border-white/10 px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-teal-400 rounded-lg flex items-center justify-center"><span className="text-slate-900 font-bold text-sm">K</span></div>
-          <span className="text-white font-semibold text-sm">Activity log</span>
-        </div>
-        <div className="flex items-center gap-4 text-sm">
-          {ADMIN_LIKE.includes(role) && (
-            <button onClick={() => router.push('/analytics')} className="text-slate-400 hover:text-white">Analytics</button>
-          )}
-          <button onClick={() => router.push('/members')} className="text-slate-400 hover:text-white">Members →</button>
-        </div>
-      </nav>
+      <TopNav title="Activity log" />
 
       <main className="max-w-5xl mx-auto px-6 py-8">
         <div className="flex flex-wrap items-center gap-3 mb-4">

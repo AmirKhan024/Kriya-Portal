@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { Table, type Column } from '@/components/ui-a/Table';
 import { Badge, type BadgeTone } from '@/components/ui-a/Badge';
+import { TopNav } from '@/components/layout/TopNav';
 import { type VideoStatus } from '@/modules/videos/constants';
 import { dbg } from '@/lib/debug';
 
@@ -81,7 +82,9 @@ function VideoLibrary() {
   ];
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-[#05080f]">
+      <TopNav title="Kriya Ops Console" />
+      <main className="max-w-4xl mx-auto px-6 py-8">
       <h1 className="text-2xl font-bold text-white">Care video library</h1>
       <p className="text-slate-400 text-sm mt-1">Upload transcodes via Mux (stubbed → instant-ready). Publish to make assignable.</p>
 
@@ -98,7 +101,8 @@ function VideoLibrary() {
       <div className="mt-6">
         {videos === null ? <div className="h-24 bg-white/5 rounded-2xl animate-pulse" /> : <Table columns={columns} rows={videos} empty="No videos yet." />}
       </div>
-    </main>
+      </main>
+    </div>
   );
 }
 

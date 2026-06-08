@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient, tokenStore } from '@/lib/api-client';
-import { parseAccessToken } from '@/store/auth';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
+import { TopNav } from '@/components/layout/TopNav';
 import { Button } from '@/components/ui/Button';
 import { Table, type Column } from '@/components/ui-a/Table';
 import { Badge } from '@/components/ui-a/Badge';
@@ -36,7 +36,6 @@ function MembersList() {
   const router = useRouter();
   const { toast } = useToast();
   const [authChecked, setAuthChecked] = useState(false);
-  const [role, setRole] = useState('');
   const [queue, setQueue] = useState<(typeof QUEUES)[number]['key']>('all');
   const [segment, setSegment] = useState('');
   const [q, setQ] = useState('');
@@ -44,9 +43,7 @@ function MembersList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const access = tokenStore.get().access;
-    if (!access) { router.push('/clinic/login'); return; }
-    setRole((parseAccessToken(access)?.role as string) ?? '');
+    if (!tokenStore.get().access) { router.push('/clinic/login'); return; }
     setAuthChecked(true);
   }, [router]);
 
@@ -106,21 +103,9 @@ function MembersList() {
 
   return (
     <div>
-      <nav className="border-b border-white/10 px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-teal-400 rounded-lg flex items-center justify-center">
-            <span className="text-slate-900 font-bold text-sm">K</span>
-          </div>
-          <span className="text-white font-semibold text-sm">Members</span>
-        </div>
-        <div className="flex items-center gap-4">
-          {['clinic_admin', 'ops'].includes(role) && (
-            <button onClick={() => router.push('/analytics')} className="text-slate-400 hover:text-white text-sm">Analytics</button>
-          )}
-          <button onClick={() => router.push('/activity')} className="text-slate-400 hover:text-white text-sm">Activity log</button>
-          <Button variant="primary" size="sm" onClick={() => router.push('/members/new')}>+ Add member</Button>
-        </div>
-      </nav>
+      <TopNav title="Members">
+        <Button variant="primary" size="sm" onClick={() => router.push('/members/new')}>+ Add member</Button>
+      </TopNav>
 
       <main className="max-w-5xl mx-auto px-6 py-8">
         {/* Action queue */}

@@ -9,6 +9,7 @@ import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { Badge } from '@/components/ui-a/Badge';
 import { Table, type Column } from '@/components/ui-a/Table';
 import { MiniBar, Sparkline } from '@/components/ui-a/Chart';
+import { TopNav } from '@/components/layout/TopNav';
 import { dbg } from '@/lib/debug';
 
 type PatientData = {
@@ -117,18 +118,7 @@ function Analytics() {
 
   if (!authChecked) return <div className="min-h-screen" />;
 
-  const nav = (
-    <nav className="border-b border-white/10 px-6 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-teal-400 rounded-lg flex items-center justify-center"><span className="text-slate-900 font-bold text-sm">K</span></div>
-        <span className="text-white font-semibold text-sm">Analytics</span>
-      </div>
-      <div className="flex items-center gap-4 text-sm">
-        <button onClick={() => router.push('/members')} className="text-slate-400 hover:text-white">Members</button>
-        <button onClick={() => router.push('/activity')} className="text-slate-400 hover:text-white">Activity log</button>
-      </div>
-    </nav>
-  );
+  const nav = <TopNav title="Analytics" />;
 
   if (!allowed) {
     return (
