@@ -8,6 +8,7 @@ import { StatusChip } from '@/components/ui/StatusChip';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
+import { TopNav } from '@/components/layout/TopNav';
 
 type Branch = { id: string; name: string; address?: string };
 type Entitlements = {
@@ -122,18 +123,10 @@ function ClinicDetailContent() {
 
   return (
     <div className="min-h-screen bg-[#05080f]">
-      <nav className="border-b border-white/10 px-6 py-3 flex items-center gap-3">
-        <div className="w-8 h-8 bg-teal-400 rounded-lg flex items-center justify-center">
-          <span className="text-slate-900 font-bold text-sm">K</span>
-        </div>
-        <span className="text-white font-semibold text-sm">Kriya Ops Console</span>
-        <span className="text-slate-600 mx-1">/</span>
-        <button onClick={() => router.push('/ops/clinics')} className="text-slate-400 text-sm hover:text-white">Clinics</button>
-        <span className="text-slate-600 mx-1">/</span>
-        <span className="text-white text-sm">{clinic.name}</span>
-      </nav>
+      <TopNav title={`Clinics / ${clinic.name}`} />
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+        <button onClick={() => router.push('/ops/clinics')} className="text-slate-400 hover:text-white text-sm">← All clinics</button>
         {/* Clinic header */}
         <div className="flex items-start justify-between">
           <div>

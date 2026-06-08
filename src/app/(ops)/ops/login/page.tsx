@@ -13,8 +13,7 @@ export default function OpsLoginPage() {
     tokenStore.set(data.access_token, data.refresh_token);
     saveSessionUser(data.user);
     // Redirect by role even on the ops page (a clinic user who lands here goes to the clinic app).
-    // The (ops) route group is stripped from the URL → the console is /clinics, not /ops/clinics.
-    router.push(data.user?.role === 'ops' ? '/clinics' : '/members');
+    router.push(data.user?.role === 'ops' ? '/ops/clinics' : '/members');
   }
 
   return (

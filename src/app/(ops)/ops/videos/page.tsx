@@ -86,7 +86,6 @@ function VideoLibrary() {
       <TopNav title="Kriya Ops Console" />
       <main className="max-w-4xl mx-auto px-6 py-8">
       <h1 className="text-2xl font-bold text-white">Care video library</h1>
-      <p className="text-slate-400 text-sm mt-1">Upload transcodes via Mux (stubbed → instant-ready). Publish to make assignable.</p>
 
       <div className="mt-6 bg-white/5 border border-white/10 rounded-2xl p-5">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">New video</h3>

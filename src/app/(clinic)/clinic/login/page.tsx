@@ -13,8 +13,7 @@ export default function ClinicLoginPage() {
     tokenStore.set(data.access_token, data.refresh_token);
     saveSessionUser(data.user);
     // Ops is platform-level (no clinic) → its home is the clinics console, not the members list.
-    // NB: the (ops) route group is stripped from the URL, so the console is /clinics (not /ops/clinics).
-    router.push(data.user?.role === 'ops' ? '/clinics' : '/members');
+    router.push(data.user?.role === 'ops' ? '/ops/clinics' : '/members');
   }
 
   return (

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
+import { TopNav } from '@/components/layout/TopNav';
 
 // ── Step indicator ──────────────────────────────────────────────────────────
 const STEPS = ['Clinic Profile', 'Branches & Seats', 'Entitlements', 'Admin Invite'];
@@ -438,15 +439,11 @@ function ProvisionWizard() {
 
   return (
     <div className="min-h-screen bg-[#05080f]">
-      <nav className="border-b border-white/10 px-6 py-3 flex items-center gap-3">
-        <div className="w-8 h-8 bg-teal-400 rounded-lg flex items-center justify-center">
-          <span className="text-slate-900 font-bold text-sm">K</span>
-        </div>
-        <span className="text-white font-semibold text-sm">Kriya Ops Console</span>
-      </nav>
+      <TopNav title="Kriya Ops Console" />
 
       <main className="max-w-4xl mx-auto px-6 py-10">
-        <div className="mb-2">
+        <a href="/ops/clinics" className="text-slate-400 hover:text-white text-sm">← All clinics</a>
+        <div className="mb-2 mt-3">
           <h1 className="text-2xl font-bold text-white">Provision New Clinic</h1>
           <p className="text-slate-400 text-sm mt-1">Set up a new clinic in 4 steps</p>
         </div>
