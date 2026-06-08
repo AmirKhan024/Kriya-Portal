@@ -4,13 +4,16 @@ import { useRouter } from 'next/navigation';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { ToastProvider } from '@/components/ui/Toast';
 import { tokenStore } from '@/lib/api-client';
+import { saveSessionUser } from '@/store/auth';
 
 export default function ClinicLoginPage() {
   const router = useRouter();
 
   function handleSuccess(data: { access_token: string; refresh_token: string; user: Record<string, unknown> }) {
     tokenStore.set(data.access_token, data.refresh_token);
-    router.push('/members');
+    saveSessionUser(data.user);
+    // Ops is platform-level (no clinic) → its home is the clinics console, not the members list.
+    router.push(data.user?.role === 'ops' ? '/ops/clinics' : '/members');
   }
 
   return (

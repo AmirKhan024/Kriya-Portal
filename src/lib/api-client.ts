@@ -83,7 +83,8 @@ async function request<T>(
     } else {
       tokenStore.clear();
       if (typeof window !== 'undefined') {
-        window.location.href = '/clinic/login';
+        // Bounce to the portal the user is actually in (ops vs clinic).
+        window.location.href = window.location.pathname.startsWith('/ops') ? '/ops/login' : '/clinic/login';
       }
       return { data: null, error: { code: 'AUTH_REQUIRED', message: 'Session expired' } };
     }
