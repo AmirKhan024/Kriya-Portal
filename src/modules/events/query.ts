@@ -31,6 +31,25 @@ export function resolveEventScope(user: AuthedUser, params: { actor?: string | n
   return { clinicId: user.clinic_id, actorId: user.id };
 }
 
+/**
+ * Resolve `from`/`to` filter strings to timestamp bounds. A `<input type="date">`
+ * sends a date-only `YYYY-MM-DD`, which `new Date()` parses to **midnight UTC** —
+ * fine for `from`, but as an upper bound it would exclude the whole selected day.
+ * So a date-only `to` is pushed to **end-of-day (inclusive)**; a full ISO string
+ * passes through unchanged. Pure + unit-tested.
+ */
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+export function dateBounds(from?: string | null, to?: string | null): { fromDate: Date | null; toDate: Date | null } {
+  const fromDate = from && !Number.isNaN(Date.parse(from)) ? new Date(from) : null;
+  let toDate: Date | null = null;
+  if (to && !Number.isNaN(Date.parse(to))) {
+    toDate = new Date(to);
+    if (DATE_ONLY.test(to)) toDate.setUTCHours(23, 59, 59, 999); // inclusive end-of-day
+  }
+  return { fromDate, toDate };
+}
+
 export type Cursor = { ts: string; id: string };
 
 export function encodeCursor(c: Cursor): string {

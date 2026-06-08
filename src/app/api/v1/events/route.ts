@@ -3,7 +3,7 @@ import { db } from '@/server/db';
 import { events, users } from '@/server/db/schema';
 import { and, eq, or, lt, gte, lte, ilike, desc } from 'drizzle-orm';
 import { getAuthedUser, withApiHandler } from '@/server/auth/middleware';
-import { resolveEventScope, encodeCursor, decodeCursor } from '@/modules/events/query';
+import { resolveEventScope, encodeCursor, decodeCursor, dateBounds } from '@/modules/events/query';
 
 // Authed + header-dependent → never static-prerender (avoids build-time dynamic-usage probe).
 export const dynamic = 'force-dynamic';
@@ -32,8 +32,9 @@ export const GET = withApiHandler(async (request) => {
   if (scope.actorId !== null) conds.push(eq(events.actor, scope.actorId));
   if (type) conds.push(eq(events.type, type));
   if (subject) conds.push(ilike(events.subject, `%${subject}%`));
-  if (from && !Number.isNaN(Date.parse(from))) conds.push(gte(events.ts, new Date(from)));
-  if (to && !Number.isNaN(Date.parse(to))) conds.push(lte(events.ts, new Date(to)));
+  const { fromDate, toDate } = dateBounds(from, to);
+  if (fromDate) conds.push(gte(events.ts, fromDate));
+  if (toDate) conds.push(lte(events.ts, toDate));
 
   if (cursorStr) {
     const c = decodeCursor(cursorStr);
