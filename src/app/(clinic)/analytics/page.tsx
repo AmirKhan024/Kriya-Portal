@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient, tokenStore } from '@/lib/api-client';
+import { parseAccessToken } from '@/store/auth';
+import { Button } from '@/components/ui/Button';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { Badge } from '@/components/ui-a/Badge';
 import { Table, type Column } from '@/components/ui-a/Table';
@@ -43,6 +45,8 @@ const STATUS_LABEL: Record<string, string> = {
 };
 const statusLabel = (s: string) => STATUS_LABEL[s] ?? s;
 
+const ANALYTICS_ROLES = ['clinic_admin', 'ops'];
+
 function StatCard({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
@@ -57,6 +61,7 @@ function Analytics() {
   const router = useRouter();
   const { toast } = useToast();
   const [authChecked, setAuthChecked] = useState(false);
+  const [allowed, setAllowed] = useState(false);
   const [tab, setTab] = useState<'patient' | 'activity'>('patient');
   const [range, setRange] = useState('30d');
   const [branchId, setBranchId] = useState('');
@@ -69,6 +74,8 @@ function Analytics() {
   useEffect(() => {
     const tokens = tokenStore.get();
     if (!tokens.access) { router.push('/clinic/login'); return; }
+    const role = (parseAccessToken(tokens.access)?.role as string) ?? '';
+    setAllowed(ANALYTICS_ROLES.includes(role)); // clinicians are 403'd server-side — gate the UI cleanly
     setAuthChecked(true);
   }, [router]);
 
@@ -98,7 +105,7 @@ function Analytics() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range, branchId, toast]);
 
-  useEffect(() => { if (authChecked) load(); }, [authChecked, range, branchId, load]);
+  useEffect(() => { if (authChecked && allowed) load(); }, [authChecked, allowed, range, branchId, load]);
 
   const asOf = (patient?.as_of ?? activity?.as_of);
   const statusMax = patient ? Math.max(1, ...Object.values(patient.status_distribution)) : 1;
@@ -110,18 +117,38 @@ function Analytics() {
 
   if (!authChecked) return <div className="min-h-screen" />;
 
+  const nav = (
+    <nav className="border-b border-white/10 px-6 py-3 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 bg-teal-400 rounded-lg flex items-center justify-center"><span className="text-slate-900 font-bold text-sm">K</span></div>
+        <span className="text-white font-semibold text-sm">Analytics</span>
+      </div>
+      <div className="flex items-center gap-4 text-sm">
+        <button onClick={() => router.push('/members')} className="text-slate-400 hover:text-white">Members</button>
+        <button onClick={() => router.push('/activity')} className="text-slate-400 hover:text-white">Activity log</button>
+      </div>
+    </nav>
+  );
+
+  if (!allowed) {
+    return (
+      <div>
+        {nav}
+        <main className="max-w-md mx-auto px-6 py-20 text-center">
+          <h2 className="text-white text-lg font-semibold">Analytics is for clinic admins</h2>
+          <p className="text-slate-400 text-sm mt-2">
+            The clinic-wide dashboards are available to <span className="text-slate-200">clinic admins</span> and{' '}
+            <span className="text-slate-200">ops</span>. Your per-member view lives on the member records.
+          </p>
+          <Button variant="secondary" className="mt-5" onClick={() => router.push('/members')}>Back to members</Button>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <nav className="border-b border-white/10 px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-teal-400 rounded-lg flex items-center justify-center"><span className="text-slate-900 font-bold text-sm">K</span></div>
-          <span className="text-white font-semibold text-sm">Analytics</span>
-        </div>
-        <div className="flex items-center gap-4 text-sm">
-          <button onClick={() => router.push('/members')} className="text-slate-400 hover:text-white">Members</button>
-          <button onClick={() => router.push('/activity')} className="text-slate-400 hover:text-white">Activity log</button>
-        </div>
-      </nav>
+      {nav}
 
       <main className="max-w-5xl mx-auto px-6 py-8">
         {/* Tabs + controls */}

@@ -130,7 +130,9 @@ function ActivityLog() {
           <span className="text-white font-semibold text-sm">Activity log</span>
         </div>
         <div className="flex items-center gap-4 text-sm">
-          <button onClick={() => router.push('/analytics')} className="text-slate-400 hover:text-white">Analytics</button>
+          {ADMIN_LIKE.includes(role) && (
+            <button onClick={() => router.push('/analytics')} className="text-slate-400 hover:text-white">Analytics</button>
+          )}
           <button onClick={() => router.push('/members')} className="text-slate-400 hover:text-white">Members →</button>
         </div>
       </nav>

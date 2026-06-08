@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient, tokenStore } from '@/lib/api-client';
+import { parseAccessToken } from '@/store/auth';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Table, type Column } from '@/components/ui-a/Table';
@@ -35,6 +36,7 @@ function MembersList() {
   const router = useRouter();
   const { toast } = useToast();
   const [authChecked, setAuthChecked] = useState(false);
+  const [role, setRole] = useState('');
   const [queue, setQueue] = useState<(typeof QUEUES)[number]['key']>('all');
   const [segment, setSegment] = useState('');
   const [q, setQ] = useState('');
@@ -42,7 +44,9 @@ function MembersList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!tokenStore.get().access) { router.push('/clinic/login'); return; }
+    const access = tokenStore.get().access;
+    if (!access) { router.push('/clinic/login'); return; }
+    setRole((parseAccessToken(access)?.role as string) ?? '');
     setAuthChecked(true);
   }, [router]);
 
@@ -110,7 +114,9 @@ function MembersList() {
           <span className="text-white font-semibold text-sm">Members</span>
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/analytics')} className="text-slate-400 hover:text-white text-sm">Analytics</button>
+          {['clinic_admin', 'ops'].includes(role) && (
+            <button onClick={() => router.push('/analytics')} className="text-slate-400 hover:text-white text-sm">Analytics</button>
+          )}
           <button onClick={() => router.push('/activity')} className="text-slate-400 hover:text-white text-sm">Activity log</button>
           <Button variant="primary" size="sm" onClick={() => router.push('/members/new')}>+ Add member</Button>
         </div>
