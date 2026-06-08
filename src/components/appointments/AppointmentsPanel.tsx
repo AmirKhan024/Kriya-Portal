@@ -104,6 +104,11 @@ export function AppointmentsPanel({ memberId, clinicianId }: { memberId: string;
         <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Book an appointment</h3>
         {!clinicianId ? (
           <p className="text-sm text-slate-500">Assign a clinician to this member first.</p>
+        ) : slots !== null && slots.length === 0 ? (
+          <p className="text-sm text-slate-400">
+            No free slots yet.{' '}
+            <a href="/availability" className="text-teal-400 hover:text-teal-300 underline">Set the clinician&apos;s availability →</a>
+          </p>
         ) : (
           <div className="flex items-end gap-3 flex-wrap">
             <label className="flex flex-col gap-1 text-sm">
