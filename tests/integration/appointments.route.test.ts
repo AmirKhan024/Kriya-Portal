@@ -218,6 +218,7 @@ describe('POST /v1/appointments/reminders-scan', () => {
   it('execute=true sends a reminder via the nudge dispatcher', async () => {
     h.getAuthedUser.mockResolvedValue(admin());
     h.select.set(appointments, [{ id: APPT, member_id: MEMBER, clinician_id: CLINICIAN, clinic_id: CLINIC_A, slot: new Date(Date.now() + 60 * 60 * 1000), status: 'booked' }]);
+    h.select.set(members, [{ id: MEMBER, telegram_chat_id: '12345' }]); // connected → reminder sends
     const res = await remindersScan(jsonReq({}, 'POST', 'http://x/api/v1/appointments/reminders-scan?execute=true'));
     const json = await res.json();
     expect(json.data.sent).toBe(1);

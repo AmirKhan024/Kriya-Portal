@@ -7,7 +7,10 @@ import { useToast } from '@/components/ui/Toast';
 import { Table, type Column } from '@/components/ui-a/Table';
 import { Badge, type BadgeTone } from '@/components/ui-a/Badge';
 import { NUDGE_CHANNELS, type NudgeChannel, type NudgeStatus } from '@/modules/nudges/constants';
+import { telegramConnectLink } from '@/modules/nudges/telegram';
 import { dbg, dbgError } from '@/lib/debug';
+
+const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? '';
 
 type Nudge = {
   id: string;
@@ -34,7 +37,7 @@ const STATUS_TONE: Record<NudgeStatus, BadgeTone> = {
  * (channel auto-selects WhatsApp→push→SMS unless one is chosen); the history
  * below lists every nudge with a status badge and a "Mark responded" action.
  */
-export function NudgePanel({ memberId }: { memberId: string }) {
+export function NudgePanel({ memberId, telegramConnected = false }: { memberId: string; telegramConnected?: boolean }) {
   const { toast } = useToast();
   const [nudges, setNudges] = useState<Nudge[] | null>(null);
   const [message, setMessage] = useState('');
@@ -143,6 +146,20 @@ export function NudgePanel({ memberId }: { memberId: string }) {
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Telegram connection */}
+      <div className={`rounded-2xl border px-4 py-3 text-sm ${telegramConnected ? 'bg-green-500/10 border-green-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
+        {telegramConnected ? (
+          <span className="text-green-300"><span className="font-semibold">✓ Telegram connected.</span> Nudges &amp; reminders reach this member.</span>
+        ) : BOT_USERNAME ? (
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <span className="text-amber-300">Not connected — the member taps this link &amp; presses <span className="font-mono">Start</span> to receive messages.</span>
+            <a href={telegramConnectLink(BOT_USERNAME, memberId)} target="_blank" rel="noreferrer" className="text-teal-400 hover:text-teal-300 underline whitespace-nowrap">Connect Telegram →</a>
+          </div>
+        ) : (
+          <span className="text-amber-300">Telegram bot not configured (<span className="font-mono">NEXT_PUBLIC_TELEGRAM_BOT_USERNAME</span>). Nudges are stubbed until set.</span>
+        )}
+      </div>
+
       {/* Compose */}
       <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Send a nudge</h3>

@@ -23,7 +23,7 @@ type TrendPoint = { date: string; musculage: number };
 type MemberDetail = {
   member: {
     id: string; name: string; mobile: string; age: number | null; sex: string | null;
-    segment: string; status: string; complaint: string | null;
+    segment: string; status: string; complaint: string | null; telegram_chat_id?: string | null;
   };
   has_consent: boolean;
   pain_flags: PainFlag[];
@@ -311,7 +311,7 @@ function MemberRecord() {
           </Card>
         )}
 
-        {tab === 'Nudges' && <NudgePanel memberId={id} />}
+        {tab === 'Nudges' && <NudgePanel memberId={id} telegramConnected={!!data.member.telegram_chat_id} />}
 
         {tab === 'Appointments' && (
           <AppointmentsPanel memberId={id} clinicianId={data.assignment?.clinician_id ?? null} />

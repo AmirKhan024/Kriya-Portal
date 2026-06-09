@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 /**
  * Route-level integration tests for feature 2c (Nudges). DB + emit mocked;
@@ -73,6 +73,7 @@ import { nudges, members, member_assignments, notifications, activity_sessions }
 import { POST as createNudge, GET as listNudges } from '@/app/api/v1/nudges/route';
 import { PATCH as patchNudge } from '@/app/api/v1/nudges/[id]/route';
 import { POST as autoScan } from '@/app/api/v1/nudges/auto-scan/route';
+import { POST as telegramWebhook } from '@/app/api/v1/webhooks/telegram/route';
 
 const CLINIC_A = '00000000-0000-4000-8000-00000000000a';
 const CLINIC_B = '00000000-0000-4000-8000-00000000000b';
@@ -120,27 +121,31 @@ describe('POST /v1/nudges', () => {
     expect(h.inserts).toHaveLength(0);
   });
 
-  it('sends a nudge: inserts, dispatches, marks sent, emits scheduled+sent', async () => {
+  it('sends a nudge to a connected member: inserts, dispatches (stub), marks sent, emits scheduled+sent', async () => {
     h.getAuthedUser.mockResolvedValue(admin());
-    h.select.set(members, [{ id: MEMBER_ID, clinic_id: CLINIC_A, status: 'on_program' }]);
+    h.select.set(members, [{ id: MEMBER_ID, clinic_id: CLINIC_A, status: 'on_program', telegram_chat_id: '12345' }]);
     h.select.set(nudges, []); // no recent → cap allows
     const res = await createNudge(jsonReq({ member_id: MEMBER_ID, message: 'Time for your session' }));
     expect(res.status).toBe(201);
     const json = await res.json();
-    expect(json.data.status).toBe('sent');
-    expect(json.data.channel).toBe('whatsapp'); // priority pick
-    expect(json.data.provider_message_id).toMatch(/^stub:whatsapp:/);
+    expect(json.data.status).toBe('sent'); // no TELEGRAM_BOT_TOKEN → stub
+    expect(json.data.channel).toBe('telegram');
+    expect(json.data.provider_message_id).toMatch(/^stub:telegram:/);
     expect(h.inserts.map((i) => i.table)).toContain(nudges);
     expect(h.updates.map((u) => u.table)).toContain(nudges); // scheduled → sent
     expect(h.emit.mock.calls.map((c) => c[0])).toEqual(['nudge.scheduled', 'nudge.sent']);
   });
 
-  it('honours a requested channel', async () => {
+  it('records a failed nudge when the member has not connected Telegram', async () => {
     h.getAuthedUser.mockResolvedValue(admin());
-    h.select.set(members, [{ id: MEMBER_ID, clinic_id: CLINIC_A, status: 'on_program' }]);
+    h.select.set(members, [{ id: MEMBER_ID, clinic_id: CLINIC_A, status: 'on_program', telegram_chat_id: null }]);
     h.select.set(nudges, []);
-    const res = await createNudge(jsonReq({ member_id: MEMBER_ID, message: 'hi', channel: 'sms' }));
-    expect((await res.json()).data.channel).toBe('sms');
+    const res = await createNudge(jsonReq({ member_id: MEMBER_ID, message: 'hi' }));
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.data.status).toBe('failed');
+    expect(json.data.reason).toBe('not_connected');
+    expect(h.inserts.map((i) => i.table)).toContain(nudges); // still recorded
   });
 
   it('blocks with 409 when the frequency cap is reached', async () => {
@@ -231,9 +236,9 @@ describe('POST /v1/nudges/auto-scan', () => {
     expect(h.emit).not.toHaveBeenCalled();
   });
 
-  it('execute=true schedules a nudge for an eligible inactive member', async () => {
+  it('execute=true schedules a nudge for an eligible connected inactive member', async () => {
     h.getAuthedUser.mockResolvedValue(admin());
-    h.select.set(members, [{ id: MEMBER_ID, clinic_id: CLINIC_A, status: 'on_program' }]);
+    h.select.set(members, [{ id: MEMBER_ID, clinic_id: CLINIC_A, status: 'on_program', telegram_chat_id: '12345' }]);
     h.select.set(activity_sessions, []);
     h.select.set(nudges, []);
     const res = await autoScan(jsonReq({}, 'POST', 'http://localhost/api/v1/nudges/auto-scan?execute=true'));
@@ -241,6 +246,36 @@ describe('POST /v1/nudges/auto-scan', () => {
     expect(json.data.scheduled).toBe(1);
     expect(h.inserts.map((i) => i.table)).toContain(nudges);
     expect(h.emit.mock.calls.map((c) => c[0])).toEqual(['nudge.scheduled', 'nudge.sent']);
+  });
+});
+
+describe('POST /v1/webhooks/telegram (no auth)', () => {
+  afterEach(() => { delete process.env.TELEGRAM_WEBHOOK_SECRET; });
+
+  function tgReq(body: unknown, headers: Record<string, string> = {}) {
+    return new Request('http://x/api/v1/webhooks/telegram', {
+      method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body),
+    });
+  }
+
+  it('captures chat_id on /start <member_id> and updates the member', async () => {
+    const res = await telegramWebhook(tgReq({ message: { text: `/start ${MEMBER_ID}`, chat: { id: 98765 } } }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).data.handled).toBe('connected');
+    const upd = h.updates.find((u) => u.table === members);
+    expect((upd?.set as { telegram_chat_id?: string })?.telegram_chat_id).toBe('98765');
+  });
+
+  it('ignores non-/start updates without touching the DB', async () => {
+    const res = await telegramWebhook(tgReq({ message: { text: 'hello', chat: { id: 1 } } }));
+    expect((await res.json()).data.handled).toBe('ignored');
+    expect(h.updates).toHaveLength(0);
+  });
+
+  it('401s on a bad secret when TELEGRAM_WEBHOOK_SECRET is set', async () => {
+    process.env.TELEGRAM_WEBHOOK_SECRET = 'shh';
+    const res = await telegramWebhook(tgReq({ message: { text: `/start ${MEMBER_ID}`, chat: { id: 1 } } }, { 'x-telegram-bot-api-secret-token': 'wrong' }));
+    expect(res.status).toBe(401);
   });
 
   it('execute=true escalates a long non-responder to the assigned clinician', async () => {
