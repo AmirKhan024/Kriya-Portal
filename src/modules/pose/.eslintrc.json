@@ -1,0 +1,6 @@
+{
+  // Vendored verbatim from kriya-v3 (camera/pose/game engines). Relax unused-var lint here only.
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "off"
+  }
+}
