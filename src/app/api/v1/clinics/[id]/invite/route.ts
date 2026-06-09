@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { uuidish } from '@/server/validation';
 import { db } from '@/server/db';
-import { branches, entitlements, users } from '@/server/db/schema';
+import { branches, entitlements, users, clinics } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 import {
   getAuthedUser, requireRole, requireSameTenant, withApiHandler, ApiError,
 } from '@/server/auth/middleware';
 import { signInviteToken } from '@/server/auth/jwt';
 import { emit } from '@/server/db/emit';
+import { sendEmail, inviteEmailHtml } from '@/server/email';
 
 const inviteSchema = z.object({
   name:      z.string().min(1).max(100),
@@ -91,11 +92,22 @@ export const POST = withApiHandler(async (request, context) => {
     console.error('[Invite] emit user.invited failed (non-fatal):', emitErr);
   }
 
+  // Email the activation link (best-effort; no-op when SMTP env is unset).
+  const base = process.env.APP_BASE_URL || new URL(request.url).origin;
+  const activationUrl = `${base}/clinic/invite-activate?token=${invite_token}`;
+  const [clinicRow] = await db.select({ name: clinics.name }).from(clinics).where(eq(clinics.id, clinicId)).limit(1);
+  const emailResult = await sendEmail({
+    to: body.email,
+    subject: `You're invited to ${clinicRow?.name ?? 'your clinic'} on Kriya`,
+    html: inviteEmailHtml(body.name, activationUrl, clinicRow?.name ?? 'your clinic', body.role),
+  });
+
   return NextResponse.json({
     data: {
       user: { id: newUserId, email: body.email, name: body.name, status: 'invited' },
       invite_link: `/clinic/invite-activate?token=${invite_token}`,
       invite_token,
+      email_sent: emailResult.sent,
       seats: { used: ent.seats_used + 1, total: ent.seats_total },
     },
     error: null,

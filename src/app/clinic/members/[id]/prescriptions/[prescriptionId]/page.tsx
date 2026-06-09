@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import QRCode from 'qrcode';
 import { apiClient } from '@/lib/api-client';
 import PrescriptionDetail from './PrescriptionDetail';
 
@@ -24,16 +25,18 @@ export default function PrescriptionViewPage() {
         eligibility: Parameters<typeof PrescriptionDetail>[0]['prescription']['eligibility'];
         prose: Parameters<typeof PrescriptionDetail>[0]['prescription']['prose'];
       };
-    }>(`/api/v1/prescriptions/${prescriptionId}`).then(res => {
+    }>(`/api/v1/prescriptions/${prescriptionId}`).then(async res => {
       setLoading(false);
       if (res.error || !res.data) { setError(res.error?.message ?? 'Failed to load'); return; }
       const d = res.data;
+      // Render the activation QR from the code string (the GET doesn't return an image).
+      const qrImage = d.qr_code ? await QRCode.toDataURL(d.qr_code).catch(() => '') : '';
       setPrescription({
         prescription_id: d.id,
         status: d.status,
         member: { id: d.member_id, name: 'Patient', status: d.status },
         qr_code: d.qr_code ?? '',
-        qr_code_image: '',
+        qr_code_image: qrImage,
         pdf_url: `/api/v1/prescriptions/${d.id}/pdf`,
         findings: d.findings_parsed?.structured ?? {},
         treeWalkerOutput: d.findings_parsed?.treeWalker ?? {

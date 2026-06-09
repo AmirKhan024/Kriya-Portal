@@ -8,6 +8,7 @@ import {
 } from '@/server/auth/middleware';
 import { signInviteToken } from '@/server/auth/jwt';
 import { emit } from '@/server/db/emit';
+import { sendEmail, inviteEmailHtml } from '@/server/email';
 
 const provisionSchema = z.object({
   name: z.string().min(2).max(100),
@@ -143,11 +144,21 @@ export const POST = withApiHandler(async (request) => {
     console.error('[Clinics] emit failed (non-fatal):', emitErr);
   }
 
+  // Email the first admin their activation link (best-effort; no-op when SMTP unset).
+  const base = process.env.APP_BASE_URL || new URL(request.url).origin;
+  const activationUrl = `${base}/clinic/invite-activate?token=${invite_token}`;
+  const emailResult = await sendEmail({
+    to: body.admin_email,
+    subject: `You're invited to ${body.name} on Kriya`,
+    html: inviteEmailHtml(body.admin_name, activationUrl, body.name, 'clinic_admin'),
+  });
+
   return NextResponse.json({
     data: {
       clinic: { id: clinicId, name: body.name, city: body.city, type: body.type, status: 'pending_setup' },
       invite_link: `/clinic/invite-activate?token=${invite_token}`,
       invite_token,
+      email_sent: emailResult.sent,
     },
     error: null,
   }, { status: 201 });

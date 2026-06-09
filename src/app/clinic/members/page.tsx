@@ -265,7 +265,7 @@ function MembersPageInner() {
                   <tr key={m.id} className="hover:bg-white/3 transition-colors">
                     <td className="py-3.5 pr-4">
                       <Link
-                        href={`/clinic/members/${m.id}/program`}
+                        href={`/clinic/members/${m.id}`}
                         className="text-white font-medium hover:text-teal-300 transition-colors"
                       >
                         {m.name}
