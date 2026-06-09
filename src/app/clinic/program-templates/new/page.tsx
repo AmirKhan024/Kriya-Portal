@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { apiClient, tokenStore } from '@/lib/api-client';
 import { parseAccessToken } from '@/store/auth';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 
 type GameOption = {
