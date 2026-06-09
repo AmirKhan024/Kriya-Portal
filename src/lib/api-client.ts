@@ -1,7 +1,7 @@
 'use client';
 
 import type { ApiResponse } from '@/types/api';
-import { loadSessionUser } from '@/store/auth';
+import { loadSessionUser, clearSessionUser } from '@/store/auth';
 
 const ACCESS_KEY  = 'kriya_access_token';
 const REFRESH_KEY = 'kriya_refresh_token';
@@ -27,6 +27,7 @@ export const tokenStore = {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
     document.cookie = 'kriya_access_token=; path=/; max-age=0; samesite=lax';
+    clearSessionUser(); // drop the persisted session-user (logout + 401-expiry both clear() here)
   },
 };
 
