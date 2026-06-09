@@ -18,8 +18,8 @@ export const dynamic = 'force-dynamic';
  *
  * Finds booked appointments inside a T-24h / T-2h window and (when `?execute=true`)
  * sends a reminder by REUSING the 2c nudge dispatcher (records a nudges row + emits
- * nudge.scheduled/sent). N8N calls this on a schedule; the dispatcher is still a
- * stub, so real Gupshup remains the PAUSE point. Dry-run by default.
+ * nudge.scheduled/sent). N8N (or any cron) calls this on a schedule; the dispatcher
+ * delivers via Telegram (no-op when TELEGRAM_BOT_TOKEN is unset). Dry-run by default.
  *
  * Scope: clinic_admin → own clinic; ops → all clinics or `?clinic_id` drill-in.
  */

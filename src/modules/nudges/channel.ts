@@ -1,10 +1,10 @@
 /**
  * Channel selection (feature 2c). Pure + unit-tested.
  *
- * Picks the highest-priority opted-in channel (WhatsApp → push → SMS). A caller
- * may *request* a specific channel; it is honoured only if the member is opted in
- * to it — a request can never bypass the opt-in (consistent with the events RLS
- * lens: a filter never widens scope).
+ * Picks the highest-priority opted-in channel from NUDGE_CHANNELS (currently
+ * Telegram-only). A caller may *request* a specific channel; it is honoured only
+ * if the member is opted in to it — a request can never bypass the opt-in
+ * (consistent with the events RLS lens: a filter never widens scope).
  *
  * DOCUMENTED DEFAULT — there is no per-member channel-preference column yet, so
  * the route supplies a default opt-in map. When a real `member_channel_preferences`
