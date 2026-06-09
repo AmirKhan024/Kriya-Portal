@@ -73,7 +73,7 @@ function ConversionDashboardInner() {
   const [clinicianId, setClinicianId] = useState('');
   const [selectedClinicianName, setSelectedClinicianName] = useState('');
 
-  const fetchDashboard = useCallback(async (cid: string) => {
+  const fetchDashboard = useCallback(async () => {
     setLoading(true);
     const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
     const params = new URLSearchParams({ from });
@@ -102,7 +102,7 @@ function ConversionDashboardInner() {
       if (staffRes.data) setStaff((staffRes.data as unknown as StaffOption[]) ?? []);
     });
 
-    fetchDashboard(clinicId);
+    fetchDashboard();
   }, [clinicId, canView, fetchDashboard]);
 
   // Compute drop-offs between stages

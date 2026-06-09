@@ -1,0 +1,8 @@
+{
+  // Vendored score engine ported verbatim from kriya-v3. Relax unused-var lint here only
+  // (some bands/matrices are consumed via v3.ts, leaving dead imports in compute.ts).
+  // Keeps the port byte-for-byte.
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "off"
+  }
+}

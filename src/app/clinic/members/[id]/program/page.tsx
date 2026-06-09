@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
-import { Input } from '@/components/ui/Input';
 
 type Member = {
   id: string;

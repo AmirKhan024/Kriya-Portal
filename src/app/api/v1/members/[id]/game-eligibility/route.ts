@@ -1,27 +1,40 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/server/db';
-import { members } from '@/server/db/schema';
-import { eq } from 'drizzle-orm';
-import {
-  getAuthedUser, requireRole, requireSameTenant, withApiHandler, ApiError,
-} from '@/server/auth/middleware';
-import { getGameEligibility } from '@/server/clinical/eligibility-fixture';
+import { games, pain_flags } from '@/server/db/schema';
+import { and, eq } from 'drizzle-orm';
+import { getAuthedUser, withApiHandler } from '@/server/auth/middleware';
+import { assertMemberVisible } from '@/modules/members/access';
+import { computeGameEligibility, canOverride } from '@/modules/pain-gating/engine';
 
+/**
+ * GET /api/v1/members/:id/game-eligibility — feature 1c · ⭐ Pain-Gating.
+ *
+ * Returns the full game catalog with a server-computed verdict per game
+ * (eligible | modified | capped | blocked) for the member's active pain flags.
+ * Read-only (no event). Safety is always computed (not behind an entitlement).
+ * `meta.can_override` tells the UI whether the caller (Ortho/Physio) may lift a
+ * BLOCKED game; the override write itself lives in the program builder (Dev B).
+ *
+ * Replaces Dev B's eligibility-fixture — the `data` items are byte-compatible.
+ */
 export const GET = withApiHandler(async (request, context) => {
   const user = await getAuthedUser(request);
-  requireRole(user, ['ortho', 'physio', 'clinic_admin', 'trainer']);
-
   const memberId = context?.params?.id ?? '';
 
-  const [member] = await db
-    .select({ id: members.id, clinic_id: members.clinic_id })
-    .from(members)
-    .where(eq(members.id, memberId))
-    .limit(1);
-  if (!member) throw new ApiError('NOT_FOUND', 'Member not found', 404);
-  requireSameTenant(user, member.clinic_id);
+  // Visibility scoping (cross-tenant / unassigned → 404).
+  await assertMemberVisible(user, memberId);
 
-  const eligibility = await getGameEligibility(memberId, member.clinic_id);
+  const allGames = await db.select().from(games);
+  const activeFlags = await db
+    .select()
+    .from(pain_flags)
+    .where(and(eq(pain_flags.member_id, memberId), eq(pain_flags.active, 'true')));
 
-  return NextResponse.json({ data: eligibility, error: null });
+  const data = computeGameEligibility(allGames, activeFlags);
+
+  return NextResponse.json({
+    data,
+    error: null,
+    meta: { can_override: canOverride(user.role) },
+  });
 });

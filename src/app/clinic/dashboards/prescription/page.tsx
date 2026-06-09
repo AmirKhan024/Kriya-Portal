@@ -68,7 +68,7 @@ function PrescriptionDashboardInner() {
   const [branchId, setBranchId]     = useState('');
   const [clinicianId, setClinicianId] = useState('');
 
-  const fetchDashboard = useCallback(async (cid: string) => {
+  const fetchDashboard = useCallback(async () => {
     setLoading(true);
     const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
     const params = new URLSearchParams({ from });
@@ -98,7 +98,7 @@ function PrescriptionDashboardInner() {
       if (staffRes.data) setStaff((staffRes.data as unknown as StaffOption[]) ?? []);
     });
 
-    fetchDashboard(clinicId);
+    fetchDashboard();
   }, [clinicId, canView, fetchDashboard]);
 
   const maxRx = Math.max(...(data?.rx_by_clinician.map(r => r.rx_count) ?? [1]), 1);

@@ -31,3 +31,30 @@ export function parseAccessToken(token: string): Partial<AuthUser> | null {
     return null;
   }
 }
+
+/**
+ * Persist the logged-in user (name/role/clinic) across reloads. The JWT carries
+ * role + ids but not the name, so we stash the login response's `user` object in
+ * localStorage for the identity chip + role-aware nav.
+ */
+const SESSION_USER_KEY = 'kriya_user';
+
+export function saveSessionUser(user: unknown): void {
+  if (typeof window === 'undefined') return;
+  try { localStorage.setItem(SESSION_USER_KEY, JSON.stringify(user)); } catch { /* ignore */ }
+}
+
+export function loadSessionUser(): Partial<AuthUser> | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(SESSION_USER_KEY);
+    return raw ? (JSON.parse(raw) as Partial<AuthUser>) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearSessionUser(): void {
+  if (typeof window === 'undefined') return;
+  try { localStorage.removeItem(SESSION_USER_KEY); } catch { /* ignore */ }
+}
