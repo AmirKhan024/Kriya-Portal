@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/server/db';
-import { prescriptions, nudges } from '@/server/db/schema';
+import { prescriptions, nudges, members } from '@/server/db/schema';
 import { eq } from 'drizzle-orm';
 import {
   getAuthedUser, requireRole, requireSameTenant, withApiHandler, ApiError,
 } from '@/server/auth/middleware';
 import { emit } from '@/server/db/emit';
+import { dispatchNudge } from '@/modules/nudges/dispatch';
 
 const sendSchema = z.object({
-  channel: z.enum(['whatsapp', 'sms', 'email', 'print']),
+  channel: z.enum(['telegram', 'email', 'print']),
 });
 
 export const POST = withApiHandler(async (request, context) => {
@@ -34,17 +35,54 @@ export const POST = withApiHandler(async (request, context) => {
   const { channel } = parsed.data;
 
   const now = new Date();
+  const nudgeId = crypto.randomUUID();
+  let nudgeStatus: 'sent' | 'failed' | 'scheduled' = 'sent';
 
-  // MVP stub: log the send without calling external messaging APIs
-  await db.insert(nudges).values({
-    member_id: prescription.member_id,
-    clinic_id: prescription.clinic_id,
-    sent_by: user.id,
-    channel,
-    message: 'Prescription letter',
-    status: 'sent',
-    sent_at: now,
-  });
+  if (channel === 'telegram') {
+    // Look up the member's telegram_chat_id for delivery.
+    const [member] = await db
+      .select({ telegram_chat_id: members.telegram_chat_id })
+      .from(members)
+      .where(eq(members.id, prescription.member_id))
+      .limit(1);
+
+    await db.insert(nudges).values({
+      id: nudgeId,
+      member_id: prescription.member_id,
+      clinic_id: prescription.clinic_id,
+      sent_by: user.id,
+      channel: 'telegram',
+      message: 'Your exercise prescription is ready. Contact your clinician for your personalised program details.',
+      status: 'scheduled',
+      scheduled_at: now,
+    });
+
+    const result = await dispatchNudge({
+      to: member?.telegram_chat_id ?? null,
+      message: 'Your exercise prescription is ready. Contact your clinician for your personalised program details.',
+    });
+
+    await db.update(nudges).set({
+      status: result.status,
+      sent_at: result.status === 'sent' ? now : null,
+      provider: result.provider,
+      provider_message_id: result.provider_message_id,
+    }).where(eq(nudges.id, nudgeId));
+
+    nudgeStatus = result.status;
+  } else {
+    // email / print — logged, not delivered externally.
+    await db.insert(nudges).values({
+      id: nudgeId,
+      member_id: prescription.member_id,
+      clinic_id: prescription.clinic_id,
+      sent_by: user.id,
+      channel,
+      message: 'Prescription letter',
+      status: 'sent',
+      sent_at: now,
+    });
+  }
 
   await db.update(prescriptions)
     .set({ status: 'sent', sent_at: now })
@@ -63,7 +101,7 @@ export const POST = withApiHandler(async (request, context) => {
   }
 
   return NextResponse.json({
-    data: { status: 'sent', channel, message: 'Prescription sent (dev stub)' },
+    data: { status: nudgeStatus, channel },
     error: null,
   });
 });
