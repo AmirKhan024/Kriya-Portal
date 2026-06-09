@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test:db": "vitest run --no-file-parallelism",
     "seed": "dotenv-cli -e .env.local -- tsx src/server/db/seed.ts",
     "db:generate": "npx dotenv-cli -e .env.local -- drizzle-kit generate",
     "db:migrate": "npx dotenv-cli -e .env.local -- drizzle-kit push",
@@ -15,6 +17,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.35",
     "@supabase/supabase-js": "^2.107.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
@@ -27,6 +30,7 @@
     "qrcode": "^1.5.4",
     "react": "^18",
     "react-dom": "^18",
+    "server-only": "^0.0.1",
     "uuid": "^14.0.0",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"

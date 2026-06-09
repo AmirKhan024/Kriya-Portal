@@ -1,6 +1,7 @@
 'use client';
 
 import type { ApiResponse } from '@/types/api';
+import { loadSessionUser } from '@/store/auth';
 
 const ACCESS_KEY  = 'kriya_access_token';
 const REFRESH_KEY = 'kriya_refresh_token';
@@ -17,11 +18,15 @@ export const tokenStore = {
     if (typeof window === 'undefined') return;
     localStorage.setItem(ACCESS_KEY, access);
     localStorage.setItem(REFRESH_KEY, refresh);
+    // Mirror the access token into a cookie so the edge middleware (src/middleware.ts),
+    // which guards /clinic & /ops by cookie, lets pages through after login.
+    document.cookie = `kriya_access_token=${access}; path=/; max-age=900; samesite=lax`;
   },
   clear(): void {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
+    document.cookie = 'kriya_access_token=; path=/; max-age=0; samesite=lax';
   },
 };
 
@@ -95,7 +100,9 @@ async function request<T>(
     } else {
       tokenStore.clear();
       if (typeof window !== 'undefined') {
-        window.location.href = '/clinic/login';
+        // Bounce to the right portal by role (persisted session user is reliable;
+        // ops console pages have no /ops URL prefix to detect).
+        window.location.href = loadSessionUser()?.role === 'ops' ? '/ops/login' : '/clinic/login';
       }
       return { data: null, error: { code: 'AUTH_REQUIRED', message: 'Session expired' } };
     }
