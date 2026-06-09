@@ -11,6 +11,8 @@ export const nudges = pgTable('nudges', {
   channel:      text('channel').notNull(),
   message:      text('message'),
   status:       text('status').notNull().default('scheduled'),
+  provider:     text('provider'),            // e.g. 'telegram' (dispatch result, persisted)
+  provider_message_id: text('provider_message_id'),
   scheduled_at: timestamp('scheduled_at', { mode: 'date' }),
   sent_at:      timestamp('sent_at', { mode: 'date' }),
   responded_at: timestamp('responded_at', { mode: 'date' }),

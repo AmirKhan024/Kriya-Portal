@@ -13,6 +13,8 @@ export const members = pgTable('members', {
   segment:    text('segment').notNull().default('care'),
   status:     text('status').notNull().default('new'),
   complaint:  text('complaint'),
+  // Telegram chat id captured when the member connects via the bot (feature 2c messaging). Null = not connected.
+  telegram_chat_id: text('telegram_chat_id'),
   created_at: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
   updated_at: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
 });

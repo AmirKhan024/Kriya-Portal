@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/server/db';
-import { appointments, nudges } from '@/server/db/schema';
-import { and, eq, gte } from 'drizzle-orm';
+import { appointments, nudges, members } from '@/server/db/schema';
+import { and, eq, gte, inArray } from 'drizzle-orm';
 import {
   getAuthedUser, requireRole, withApiHandler,
 } from '@/server/auth/middleware';
@@ -43,6 +43,14 @@ export const POST = withApiHandler(async (request) => {
   let sent = 0;
   if (execute) {
     const channel = selectChannel(defaultOptIn())!.channel;
+    // Batch-resolve each due member's telegram_chat_id (no N+1).
+    const dueMemberIds = Array.from(new Set(due.map((d) => d.appointment.member_id)));
+    const chatByMember = new Map<string, string | null>();
+    if (dueMemberIds.length) {
+      const ms = await db.select({ id: members.id, telegram_chat_id: members.telegram_chat_id })
+        .from(members).where(inArray(members.id, dueMemberIds));
+      for (const m of ms) chatByMember.set(m.id, m.telegram_chat_id);
+    }
     for (const { appointment, window } of due) {
       const message = `Reminder: your appointment is in about ${window}h.`;
       const id = crypto.randomUUID();
@@ -53,12 +61,15 @@ export const POST = withApiHandler(async (request) => {
       await emit('nudge.scheduled', user.id, appointment.clinic_id, `member:${appointment.member_id}`, {
         channel, kind: 'appointment_reminder', appointment_id: appointment.id, window,
       });
-      const r = await dispatchNudge({ channel, member_id: appointment.member_id, message });
-      await db.update(nudges).set({ status: 'sent', sent_at: now }).where(eq(nudges.id, id));
+      const r = await dispatchNudge({ to: chatByMember.get(appointment.member_id) ?? null, message });
+      await db.update(nudges).set({
+        status: r.status, sent_at: r.status === 'sent' ? now : null,
+        provider: r.provider, provider_message_id: r.provider_message_id,
+      }).where(eq(nudges.id, id));
       await emit('nudge.sent', user.id, appointment.clinic_id, `member:${appointment.member_id}`, {
-        channel, provider_message_id: r.provider_message_id, kind: 'appointment_reminder',
+        channel, status: r.status, provider_message_id: r.provider_message_id, reason: r.reason ?? null, kind: 'appointment_reminder',
       });
-      sent += 1;
+      if (r.status === 'sent') sent += 1;
     }
   }
 

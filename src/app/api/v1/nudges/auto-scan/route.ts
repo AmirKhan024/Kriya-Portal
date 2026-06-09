@@ -46,7 +46,7 @@ export const POST = withApiHandler(async (request) => {
 
   // 1 · Members in scope (batched, capped).
   const memberRows = await db
-    .select({ id: members.id, clinic_id: members.clinic_id, status: members.status })
+    .select({ id: members.id, clinic_id: members.clinic_id, status: members.status, telegram_chat_id: members.telegram_chat_id })
     .from(members)
     .where(clinicId ? eq(members.clinic_id, clinicId) : undefined)
     .limit(MAX_SCAN);
@@ -116,12 +116,15 @@ export const POST = withApiHandler(async (request) => {
         channel, message: REENGAGE_MESSAGE, status: 'scheduled', scheduled_at: now,
       });
       await emit('nudge.scheduled', user.id, c.clinic_id, `member:${c.member_id}`, { channel, auto: true });
-      const r = await dispatchNudge({ channel, member_id: c.member_id, message: REENGAGE_MESSAGE });
-      await db.update(nudges).set({ status: 'sent', sent_at: now }).where(eq(nudges.id, id));
+      const r = await dispatchNudge({ to: memberById.get(c.member_id)?.telegram_chat_id ?? null, message: REENGAGE_MESSAGE });
+      await db.update(nudges).set({
+        status: r.status, sent_at: r.status === 'sent' ? now : null,
+        provider: r.provider, provider_message_id: r.provider_message_id,
+      }).where(eq(nudges.id, id));
       await emit('nudge.sent', user.id, c.clinic_id, `member:${c.member_id}`, {
-        channel, provider_message_id: r.provider_message_id, auto: true,
+        channel, status: r.status, provider_message_id: r.provider_message_id, reason: r.reason ?? null, auto: true,
       });
-      scheduled += 1;
+      if (r.status === 'sent') scheduled += 1;
     }
 
     // 5 · Escalate long non-responders to their assigned clinician.

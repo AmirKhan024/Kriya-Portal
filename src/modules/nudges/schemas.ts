@@ -25,10 +25,10 @@ export const patchNudgeSchema = z.object({
 });
 
 /**
- * Default per-member channel opt-in (DOCUMENTED DEFAULT — no preference column
- * yet; see channel.ts). Push is always available; WhatsApp/SMS default on so
- * manual sends work. Swap for real preferences when that table lands.
+ * Default per-member channel opt-in. Telegram is the only live channel; a member
+ * is reachable once they connect (telegram_chat_id set). The dispatcher handles
+ * the not-connected case gracefully.
  */
 export function defaultOptIn(): ChannelOptIn {
-  return { whatsapp: true, push: true, sms: true };
+  return { telegram: true };
 }
