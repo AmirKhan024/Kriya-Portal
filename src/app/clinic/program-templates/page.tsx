@@ -33,7 +33,7 @@ function TemplateLibraryInner() {
     if (!tokens.access) { router.push('/clinic/login'); return; }
     const payload = parseAccessToken(tokens.access) as Record<string, unknown> | null;
     const role = (payload?.role as string) ?? '';
-    if (role !== 'clinic_admin') { router.push('/clinic/dashboard'); return; }
+    if (role !== 'clinic_admin') { router.push('/clinic/members'); return; }
     setIsAdmin(true);
     fetchTemplates();
   }, []);
@@ -69,7 +69,7 @@ function TemplateLibraryInner() {
           <span className="text-white font-medium text-sm">Program Templates</span>
         </div>
         {isAdmin && (
-          <Button variant="primary" onClick={() => router.push('/program-templates/new')}>
+          <Button variant="primary" onClick={() => router.push('/clinic/program-templates/new')}>
             + New Template
           </Button>
         )}
@@ -108,7 +108,7 @@ function TemplateLibraryInner() {
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <p className="text-slate-400 text-sm">No {activeTab} templates yet.</p>
             {isAdmin && (
-              <Button variant="secondary" onClick={() => router.push('/program-templates/new')}>
+              <Button variant="secondary" onClick={() => router.push('/clinic/program-templates/new')}>
                 Create first template
               </Button>
             )}
@@ -143,7 +143,7 @@ function TemplateLibraryInner() {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => router.push(`/program-templates/new/${template.id}`)}
+                    onClick={() => router.push(`/clinic/program-templates/new/${template.id}`)}
                   >
                     Edit
                   </Button>

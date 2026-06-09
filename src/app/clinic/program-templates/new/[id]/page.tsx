@@ -53,7 +53,7 @@ function EditTemplateInner() {
     const tokens = tokenStore.get();
     if (!tokens.access) { router.push('/clinic/login'); return; }
     const payload = parseAccessToken(tokens.access) as Record<string, unknown> | null;
-    if ((payload?.role as string) !== 'clinic_admin') { router.push('/clinic/dashboard'); return; }
+    if ((payload?.role as string) !== 'clinic_admin') { router.push('/clinic/members'); return; }
     Promise.all([loadTemplate(), loadGames()]);
   }, [templateId]);
 
@@ -69,7 +69,7 @@ function EditTemplateInner() {
     setLoading(false);
     if (res.error || !res.data) {
       toast({ variant: 'error', title: 'Failed to load template', message: res.error?.message });
-      router.push('/program-templates');
+      router.push('/clinic/program-templates');
       return;
     }
     const t = res.data;
@@ -216,7 +216,7 @@ function EditTemplateInner() {
       <nav className="border-b border-white/10 px-6 py-3 flex items-center gap-3">
         <button onClick={() => router.back()} className="text-slate-400 hover:text-white text-sm">← Back</button>
         <span className="text-slate-600">/</span>
-        <a href="/program-templates" className="text-slate-400 hover:text-white text-sm">Program Templates</a>
+        <a href="/clinic/program-templates" className="text-slate-400 hover:text-white text-sm">Program Templates</a>
         <span className="text-slate-600">/</span>
         <span className="text-white font-medium text-sm truncate max-w-xs">{templateName}</span>
         <StatusChip status={currentStatus} />

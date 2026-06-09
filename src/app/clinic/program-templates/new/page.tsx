@@ -50,7 +50,7 @@ function TemplateBuilderInner() {
     const tokens = tokenStore.get();
     if (!tokens.access) { router.push('/clinic/login'); return; }
     const payload = parseAccessToken(tokens.access) as Record<string, unknown> | null;
-    if ((payload?.role as string) !== 'clinic_admin') { router.push('/clinic/dashboard'); return; }
+    if ((payload?.role as string) !== 'clinic_admin') { router.push('/clinic/members'); return; }
     loadGames();
   }, []);
 
@@ -142,7 +142,7 @@ function TemplateBuilderInner() {
       setPublishing(false);
       if (pubRes.error) {
         toast({ variant: 'error', title: 'Publish failed', message: pubRes.error.message });
-        router.push(`/program-templates/new/${templateId}`);
+        router.push(`/clinic/program-templates/new/${templateId}`);
         return;
       }
       toast({ variant: 'success', title: 'Template published' });
@@ -150,7 +150,7 @@ function TemplateBuilderInner() {
       toast({ variant: 'success', title: 'Template saved as draft' });
     }
 
-    router.push('/program-templates');
+    router.push('/clinic/program-templates');
   }
 
   const activePhase = phases[activePhaseIdx] ?? null;
@@ -160,7 +160,7 @@ function TemplateBuilderInner() {
       <nav className="border-b border-white/10 px-6 py-3 flex items-center gap-3">
         <button onClick={() => router.back()} className="text-slate-400 hover:text-white text-sm">← Back</button>
         <span className="text-slate-600">/</span>
-        <a href="/program-templates" className="text-slate-400 hover:text-white text-sm">Program Templates</a>
+        <a href="/clinic/program-templates" className="text-slate-400 hover:text-white text-sm">Program Templates</a>
         <span className="text-slate-600">/</span>
         <span className="text-white font-medium text-sm">New Template</span>
       </nav>
