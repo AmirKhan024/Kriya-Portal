@@ -23,9 +23,10 @@ const VIEW_ALL_ROLES = ['ops', 'clinic_admin', 'front_desk'];
 /**
  * POST /api/v1/nudges — feature 2c · send a manual nudge.
  *
- * Channel order WhatsApp→push→SMS (opted-in only); a frequency cap prevents
- * spamming. Schedules → dispatches (stub) → marks sent, emitting
- * nudge.scheduled then nudge.sent. Tenant + assignment scoped via the member.
+ * Delivered via Telegram (opted-in only); a frequency cap prevents spamming.
+ * Schedules → dispatches (Telegram sendMessage; no-op when unconfigured) → marks
+ * sent, emitting nudge.scheduled then nudge.sent. Tenant + assignment scoped via
+ * the member.
  */
 export const POST = withApiHandler(async (request) => {
   const user = await getAuthedUser(request);

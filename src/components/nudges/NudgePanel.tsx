@@ -34,7 +34,7 @@ const STATUS_TONE: Record<NudgeStatus, BadgeTone> = {
 
 /**
  * Manual nudge panel + history (feature 2c). Compose a message → POST /v1/nudges
- * (channel auto-selects WhatsApp→push→SMS unless one is chosen); the history
+ * (delivered via Telegram to the member's connected chat); the history
  * below lists every nudge with a status badge and a "Mark responded" action.
  */
 export function NudgePanel({ memberId, telegramConnected = false }: { memberId: string; telegramConnected?: boolean }) {
@@ -179,7 +179,7 @@ export function NudgePanel({ memberId, telegramConnected = false }: { memberId: 
               onChange={(e) => setChannel(e.target.value as '' | NudgeChannel)}
               className="rounded-lg bg-[#05080f] border border-white/10 px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-teal-400/60"
             >
-              <option value="">Auto (WhatsApp → push → SMS)</option>
+              <option value="">Auto (Telegram)</option>
               {NUDGE_CHANNELS.map((c) => (
                 <option key={c} value={c} className="capitalize">{c}</option>
               ))}
