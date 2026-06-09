@@ -75,14 +75,17 @@ export const POST = withApiHandler(async (request) => {
     channel: choice.channel, type: type ?? null,
   });
 
-  const result = await dispatchNudge({ channel: choice.channel, member_id, message });
+  const result = await dispatchNudge({ to: member.telegram_chat_id, message });
 
-  await db.update(nudges).set({ status: 'sent', sent_at: now }).where(eq(nudges.id, id));
-  await emit('nudge.sent', user.id, member.clinic_id, `member:${member_id}`, {
-    channel: choice.channel,
+  await db.update(nudges).set({
+    status: result.status,
+    sent_at: result.status === 'sent' ? now : null,
     provider: result.provider,
     provider_message_id: result.provider_message_id,
-    stubbed: result.stubbed,
+  }).where(eq(nudges.id, id));
+  await emit('nudge.sent', user.id, member.clinic_id, `member:${member_id}`, {
+    channel: choice.channel, status: result.status, provider: result.provider,
+    provider_message_id: result.provider_message_id, reason: result.reason ?? null, stubbed: result.stubbed,
   });
 
   return NextResponse.json({
@@ -92,11 +95,12 @@ export const POST = withApiHandler(async (request) => {
       clinic_id: member.clinic_id,
       channel: choice.channel,
       message,
-      status: 'sent',
+      status: result.status,
       scheduled_at: now,
-      sent_at: now,
+      sent_at: result.status === 'sent' ? now : null,
       responded_at: null,
       provider_message_id: result.provider_message_id,
+      reason: result.reason ?? null,
       stubbed: result.stubbed,
     },
     error: null,

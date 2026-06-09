@@ -6,8 +6,8 @@
  * thresholds). They live here so the policy is in one place and easy to tune.
  */
 
-/** Delivery channels in priority order (WhatsApp → push → SMS), per brief §8 2c. */
-export const NUDGE_CHANNELS = ['whatsapp', 'push', 'sms'] as const;
+/** Delivery channels. Telegram is the live free-tier channel (replaced the WhatsApp/push/SMS stubs). */
+export const NUDGE_CHANNELS = ['telegram'] as const;
 export type NudgeChannel = (typeof NUDGE_CHANNELS)[number];
 
 /** Lifecycle of a nudge row. */
