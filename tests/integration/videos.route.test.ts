@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 /**
  * Route-level integration tests for feature 3a (Care Video). DB + emit mocked;
@@ -56,13 +56,19 @@ vi.mock('@/server/auth/middleware', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/server/auth/middleware')>();
   return { ...actual, getAuthedUser: h.getAuthedUser };
 });
+// Don't hit real Supabase Storage in unit tests.
+vi.mock('@/server/lib/supabase-storage', () => ({
+  videoPath: (id: string) => `videos/${id}`,
+  createVideoUpload: vi.fn(async (id: string) => ({ path: `videos/${id}`, signed_url: 'https://signed-upload', token: 'tok', stubbed: false })),
+  getPlaybackUrl: vi.fn(async (p: string | null) => (p ? `https://signed-play/${p}` : null)),
+}));
 
 import { care_videos, video_assignments, activity_sessions, members, member_assignments, entitlements } from '@/server/db/schema';
 import { invalidateEntitlementCache } from '@/server/auth/middleware';
 import { POST as createVideo, GET as listVideos } from '@/app/api/v1/videos/route';
 import { POST as publishVideo } from '@/app/api/v1/videos/[id]/publish/route';
-import { POST as assignVideo } from '@/app/api/v1/members/[id]/video-assignments/route';
-import { POST as muxWebhook } from '@/app/api/v1/webhooks/mux/route';
+import { POST as assignVideo, GET as getAssignments } from '@/app/api/v1/members/[id]/video-assignments/route';
+import { POST as readyVideo } from '@/app/api/v1/videos/[id]/ready/route';
 
 const CLINIC_A = '00000000-0000-4000-8000-00000000000a';
 const CLINIC_B = '00000000-0000-4000-8000-00000000000b';
@@ -74,21 +80,16 @@ function physio(clinic = CLINIC_A) { return { id: '00000000-0000-4000-8000-00000
 function jsonReq(body: unknown, url = 'http://x/api/v1/videos') {
   return new Request(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer t' }, body: JSON.stringify(body) });
 }
-function noAuthReq(body: unknown) {
-  return new Request('http://x/api/v1/webhooks/mux', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-}
-
 beforeEach(() => { h.reset(); invalidateEntitlementCache(CLINIC_A); });
-afterEach(() => { delete process.env.MUX_WEBHOOK_SECRET; });
 
 describe('POST /v1/videos (ops only)', () => {
-  it('creates a stub-ready video for ops', async () => {
+  it('creates a draft + returns a signed upload URL for ops', async () => {
     h.getAuthedUser.mockResolvedValue(ops());
     const res = await createVideo(jsonReq({ title: 'Knee mobility', regions: 'knee' }));
     expect(res.status).toBe(201);
     const json = await res.json();
-    expect(json.data.video.status).toBe('ready');
-    expect(json.data.video.playback_id).toMatch(/^stub-pb-/);
+    expect(json.data.video.status).toBe('draft');
+    expect(json.data.upload.signed_url).toBe('https://signed-upload');
     expect(h.inserts.map((i) => i.table)).toContain(care_videos);
   });
 
@@ -96,6 +97,17 @@ describe('POST /v1/videos (ops only)', () => {
     h.getAuthedUser.mockResolvedValue({ id: 'a', clinic_id: CLINIC_A, branch_id: null, role: 'clinic_admin' });
     const res = await createVideo(jsonReq({ title: 'x' }));
     expect(res.status).toBe(403);
+  });
+});
+
+describe('POST /v1/videos/:id/ready (ops)', () => {
+  it('flips a draft video to ready', async () => {
+    h.getAuthedUser.mockResolvedValue(ops());
+    h.select.set(care_videos, [{ id: VIDEO, status: 'draft', title: 'Knee' }]);
+    const res = await readyVideo(jsonReq({}, `http://x/api/v1/videos/${VIDEO}/ready`), { params: { id: VIDEO } });
+    expect(res.status).toBe(200);
+    expect((await res.json()).data.status).toBe('ready');
+    expect(h.updates.map((u) => u.table)).toContain(care_videos);
   });
 });
 
@@ -169,33 +181,17 @@ describe('POST /v1/members/:id/video-assignments', () => {
   });
 });
 
-describe('POST /v1/webhooks/mux (no auth, signature-verified)', () => {
-  it('asset.ready marks the video ready + stores playback id', async () => {
-    const res = await muxWebhook(noAuthReq({ type: 'video.asset.ready', data: { id: 'a1', playback_ids: [{ id: 'pb1' }], passthrough: JSON.stringify({ video_id: VIDEO }) } }));
+describe('GET /v1/members/:id/video-assignments', () => {
+  it('returns assignments with a signed playback URL', async () => {
+    h.getAuthedUser.mockResolvedValue(physio());
+    h.select.set(members, [{ id: MEMBER, clinic_id: CLINIC_A, status: 'on_program' }]);
+    h.select.set(member_assignments, [{ id: 'a1' }]);
+    h.select.set(video_assignments, [{ id: 'va1', video_id: VIDEO, assigned_at: new Date(), title: 'Knee', status: 'published', playback_id: `videos/${VIDEO}` }]);
+    h.select.set(activity_sessions, []);
+    const res = await getAssignments(new Request(`http://x/api/v1/members/${MEMBER}/video-assignments`, { headers: { authorization: 'Bearer t' } }), { params: { id: MEMBER } });
     expect(res.status).toBe(200);
-    expect((await res.json()).data.handled).toBe('asset.ready');
-    expect(h.updates.map((u) => u.table)).toContain(care_videos);
-  });
-
-  it('a >=90% view records an activity session + emits video.watched', async () => {
-    h.select.set(members, [{ clinic_id: CLINIC_A }]);
-    h.select.set(activity_sessions, []); // not yet logged
-    const res = await muxWebhook(noAuthReq({ type: 'video.view', data: { percent: 95, passthrough: { member_id: MEMBER, video_id: VIDEO, clinic_id: CLINIC_A } } }));
-    expect((await res.json()).data.handled).toBe('view.completed');
-    expect(h.inserts.map((i) => i.table)).toContain(activity_sessions);
-    const events = h.emit.mock.calls.map((c) => c[0]);
-    expect(events).toEqual(expect.arrayContaining(['video.watched', 'activity.completed']));
-  });
-
-  it('a <90% view records nothing', async () => {
-    const res = await muxWebhook(noAuthReq({ type: 'video.view', data: { percent: 40, passthrough: { member_id: MEMBER, video_id: VIDEO } } }));
-    expect((await res.json()).data.handled).toBe('view.incomplete');
-    expect(h.inserts).toHaveLength(0);
-  });
-
-  it('rejects a bad signature when MUX_WEBHOOK_SECRET is set', async () => {
-    process.env.MUX_WEBHOOK_SECRET = 'shh';
-    const res = await muxWebhook(new Request('http://x/api/v1/webhooks/mux', { method: 'POST', headers: { 'content-type': 'application/json', 'mux-signature': 't=1,v1=bad' }, body: '{}' }));
-    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.data[0].playback_url).toBe(`https://signed-play/videos/${VIDEO}`);
+    expect(json.data[0].watched_pct).toBe(0);
   });
 });

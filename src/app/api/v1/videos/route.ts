@@ -6,14 +6,14 @@ import {
   getAuthedUser, requireRole, withApiHandler, ApiError,
 } from '@/server/auth/middleware';
 import { createVideoSchema } from '@/modules/videos/schemas';
-import { createDirectUpload } from '@/modules/videos/mux';
+import { createVideoUpload } from '@/server/lib/supabase-storage';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/v1/videos — feature 3a · create a care video (ops only; the catalog is
- * platform-wide, no clinic_id). Kicks off a Mux upload (stub → instant-ready) and
- * stores the draft/ready row + playback id. No event until published.
+ * platform-wide, no clinic_id). Creates a `draft` row and returns a Supabase Storage
+ * signed upload URL the client PUTs the file to; the client then calls /ready.
  */
 export const POST = withApiHandler(async (request) => {
   const user = await getAuthedUser(request);
@@ -26,14 +26,13 @@ export const POST = withApiHandler(async (request) => {
   const body = parsed.data;
 
   const id = crypto.randomUUID();
-  // passthrough carries our id back on the Mux asset.ready webhook.
-  const upload = await createDirectUpload({ title: body.title, passthrough: { video_id: id } });
+  const upload = await createVideoUpload(id);
 
   await db.insert(care_videos).values({
     id,
     title: body.title,
-    status: upload.status, // 'ready' in stub mode; 'draft' until the webhook in live mode
-    playback_id: upload.playback_id,
+    status: 'draft',
+    playback_id: upload.path, // storage path; signed playback URLs are minted on read
     regions: body.regions ?? null,
     conditions: body.conditions ?? null,
     language: body.language ?? 'en',
@@ -42,8 +41,8 @@ export const POST = withApiHandler(async (request) => {
 
   return NextResponse.json({
     data: {
-      video: { id, title: body.title, status: upload.status, playback_id: upload.playback_id },
-      upload: { upload_url: upload.upload_url, asset_id: upload.asset_id, stubbed: upload.stubbed },
+      video: { id, title: body.title, status: 'draft' },
+      upload: { signed_url: upload.signed_url, path: upload.path, stubbed: upload.stubbed },
     },
     error: null,
   }, { status: 201 });

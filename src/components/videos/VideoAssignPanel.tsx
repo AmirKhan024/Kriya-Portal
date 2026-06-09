@@ -1,19 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { Table, type Column } from '@/components/ui-a/Table';
 import { Badge } from '@/components/ui-a/Badge';
+import { WATCH_COMPLETE_PCT } from '@/modules/videos/constants';
 import { dbg, dbgError } from '@/lib/debug';
 
 type Video = { id: string; title: string; status: string };
-type Assignment = { id: string; video_id: string; title: string | null; status: string | null; assigned_at: string; watched_pct: number };
+type Assignment = {
+  id: string; video_id: string; title: string | null; status: string | null;
+  assigned_at: string; watched_pct: number; playback_url: string | null;
+};
 
 /**
- * Member-record Care Videos tab (feature 3a): assign a published video from the
- * library and list the member's assignments with watch %.
+ * Member-record Care Videos tab (feature 3a): assign a published video, play it
+ * inline (Supabase Storage signed URL), and record a completed activity-session once
+ * watched ≥90% (the clinician plays the rehab video in-session).
  */
 export function VideoAssignPanel({ memberId }: { memberId: string }) {
   const { toast } = useToast();
@@ -21,6 +26,8 @@ export function VideoAssignPanel({ memberId }: { memberId: string }) {
   const [library, setLibrary] = useState<Video[]>([]);
   const [videoId, setVideoId] = useState('');
   const [assigning, setAssigning] = useState(false);
+  const [playing, setPlaying] = useState<Assignment | null>(null);
+  const recorded = useRef<Set<string>>(new Set());
 
   async function loadAssignments() {
     dbg('VideoAssignPanel:loadAssignments', { memberId });
@@ -60,14 +67,37 @@ export function VideoAssignPanel({ memberId }: { memberId: string }) {
     }
   }
 
+  // When the playing video crosses the watch-complete threshold, record it once.
+  async function onTimeUpdate(e: React.SyntheticEvent<HTMLVideoElement>) {
+    const v = e.currentTarget;
+    if (!playing || !v.duration || recorded.current.has(playing.video_id)) return;
+    const pct = Math.round((v.currentTime / v.duration) * 100);
+    if (pct < WATCH_COMPLETE_PCT) return;
+    recorded.current.add(playing.video_id);
+    dbg('VideoAssignPanel:watch-complete', { video_id: playing.video_id, pct });
+    const res = await apiClient.post('/api/v1/activity-sessions', {
+      member_id: memberId, video_id: playing.video_id, type: 'video', score: pct, duration_sec: Math.round(v.duration),
+    });
+    if (!res.error) {
+      toast({ variant: 'success', title: 'Marked watched' });
+      await loadAssignments();
+    }
+  }
+
   const columns: Column<Assignment>[] = [
     { key: 'title', header: 'Video', render: (a) => <span className="text-white">{a.title ?? a.video_id}</span> },
     { key: 'assigned', header: 'Assigned', render: (a) => <span className="text-slate-400 text-xs">{new Date(a.assigned_at).toLocaleDateString()}</span> },
     {
       key: 'watched', header: 'Watched', align: 'right',
-      render: (a) => a.watched_pct >= 90
+      render: (a) => a.watched_pct >= WATCH_COMPLETE_PCT
         ? <Badge tone="green">{`${a.watched_pct}%`}</Badge>
         : <span className="text-slate-300 tabular-nums">{a.watched_pct}%</span>,
+    },
+    {
+      key: 'play', header: '', align: 'right',
+      render: (a) => a.playback_url
+        ? <button onClick={() => setPlaying(a)} className="text-xs text-teal-400 hover:text-teal-300 whitespace-nowrap">▶ Play</button>
+        : <span className="text-xs text-slate-600">no file</span>,
     },
   ];
 
@@ -83,6 +113,17 @@ export function VideoAssignPanel({ memberId }: { memberId: string }) {
           <Button size="sm" loading={assigning} disabled={!videoId} onClick={assign}>Assign</Button>
         </div>
       </div>
+
+      {playing && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-white">{playing.title ?? 'Video'}</span>
+            <button onClick={() => setPlaying(null)} className="text-xs text-slate-400 hover:text-white">✕ Close</button>
+          </div>
+          <video src={playing.playback_url ?? undefined} controls autoPlay onTimeUpdate={onTimeUpdate} className="w-full rounded-lg bg-black max-h-[420px]" />
+          <p className="text-xs text-slate-500 mt-2">Watching to {WATCH_COMPLETE_PCT}% records a completed session.</p>
+        </div>
+      )}
 
       <div>
         <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Assigned videos</h3>

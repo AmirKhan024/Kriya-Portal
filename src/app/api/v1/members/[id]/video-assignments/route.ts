@@ -8,6 +8,7 @@ import {
 import { emit } from '@/server/db/emit';
 import { assertMemberVisible } from '@/modules/members/access';
 import { assignVideoSchema } from '@/modules/videos/schemas';
+import { getPlaybackUrl } from '@/server/lib/supabase-storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,6 +87,11 @@ export const GET = withApiHandler(async (request, context) => {
     }
   }
 
-  const data = rows.map((r) => ({ ...r, watched_pct: watched.get(r.video_id) ?? 0 }));
+  // Mint a short-lived signed playback URL for each video (private bucket).
+  const data = await Promise.all(rows.map(async (r) => ({
+    ...r,
+    watched_pct: watched.get(r.video_id) ?? 0,
+    playback_url: await getPlaybackUrl(r.playback_id),
+  })));
   return NextResponse.json({ data, error: null, meta: { count: data.length } });
 });
