@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { apiClient, tokenStore } from '@/lib/api-client';
+import { saveSessionUser } from '@/store/auth';
 
 function decodeInviteEmail(token: string): string {
   try {
@@ -60,7 +61,10 @@ function ActivateForm() {
       }
 
       tokenStore.set(res.data.access_token, res.data.refresh_token);
-      router.push('/clinic/staff');
+      saveSessionUser(res.data.user);
+      // Land on the clinic home (accessible to every role). The previous target
+      // /clinic/staff is admin-only, so non-admin invitees got an empty page.
+      router.push('/clinic/members');
     } finally {
       setLoading(false);
     }

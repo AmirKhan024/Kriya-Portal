@@ -41,6 +41,13 @@ function StaffRosterPage() {
       router.push('/clinic/login');
       return;
     }
+    // Staff management is clinic_admin-only (matches the API). Non-admins who land
+    // here (e.g. via an old link) go to the clinic home instead of an empty page.
+    const role = (payload as Record<string, unknown>)?.role as string | null;
+    if (role !== 'clinic_admin') {
+      router.push('/clinic/members');
+      return;
+    }
     setClinicId(cid);
 
     apiClient.get<StaffMember[]>(`/api/v1/clinics/${cid}/staff`).then(res => {

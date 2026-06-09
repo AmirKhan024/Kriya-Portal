@@ -4,12 +4,14 @@ import { useRouter } from 'next/navigation';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { ToastProvider } from '@/components/ui/Toast';
 import { tokenStore } from '@/lib/api-client';
+import { saveSessionUser } from '@/store/auth';
 
 export default function OpsLoginPage() {
   const router = useRouter();
 
   function handleSuccess(data: { access_token: string; refresh_token: string; user: Record<string, unknown> }) {
     tokenStore.set(data.access_token, data.refresh_token);
+    saveSessionUser(data.user);
     router.push('/ops/clinics');
   }
 
