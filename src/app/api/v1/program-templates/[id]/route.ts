@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { uuidish } from '@/server/validation';
 import { db } from '@/server/db';
 import { program_templates, program_phases, program_items, games } from '@/server/db/schema';
 import { eq, asc } from 'drizzle-orm';
@@ -15,7 +16,7 @@ const updateTemplateSchema = z.object({
     duration_weeks: z.number().int().min(1).max(52),
     order: z.number().int().min(1),
     items: z.array(z.object({
-      game_id: z.string().uuid(),
+      game_id: uuidish,
       frequency_per_week: z.number().int().min(1).max(7).default(3),
     })).default([]),
   })).optional(),

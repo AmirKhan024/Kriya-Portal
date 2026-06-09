@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { uuidish } from '@/server/validation';
 import { db } from '@/server/db';
 import { member_assignments, members, users } from '@/server/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
@@ -9,8 +10,8 @@ import {
 import { emit } from '@/server/db/emit';
 
 const postSchema = z.object({
-  member_id:    z.string().uuid(),
-  clinician_id: z.string().uuid(),
+  member_id:    uuidish,
+  clinician_id: uuidish,
 });
 
 export const GET = withApiHandler(async (request, context) => {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { uuidish } from '@/server/validation';
 import { db } from '@/server/db';
 import { program_templates, program_phases, program_items, games } from '@/server/db/schema';
 import { eq, asc, desc } from 'drizzle-orm';
@@ -9,7 +10,7 @@ import {
 import { emit } from '@/server/db/emit';
 
 const itemInputSchema = z.object({
-  game_id: z.string().uuid(),
+  game_id: uuidish,
   frequency_per_week: z.number().int().min(1).max(7).default(3),
 });
 

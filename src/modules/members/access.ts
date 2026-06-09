@@ -6,13 +6,13 @@ import type { AuthedUser } from '@/types/auth';
 
 /**
  * Member visibility scoping (shared by member-record + game-eligibility reads):
- *   - ops / clinic_admin / front_desk → any member in their clinic
- *   - ortho / physio / trainer        → only members assigned to them
- * Cross-tenant or unassigned access throws NOT_FOUND (no existence leak).
+ *   - every clinic role → any member in their own clinic (matches the clinic-wide
+ *     members list). "Assigned to me" is a caseload filter, not a hard access gate.
+ * Cross-tenant access throws NOT_FOUND (no existence leak).
  *
  * Returns the member row when visible.
  */
-const VIEW_ALL_ROLES = ['ops', 'clinic_admin', 'front_desk'];
+const VIEW_ALL_ROLES = ['ops', 'clinic_admin', 'front_desk', 'ortho', 'physio', 'trainer'];
 
 export async function assertMemberVisible(user: AuthedUser, memberId: string) {
   const rows = await db.select().from(members).where(eq(members.id, memberId)).limit(1);

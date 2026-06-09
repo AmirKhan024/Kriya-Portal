@@ -8,12 +8,10 @@ import { getAuthedUser, withApiHandler, ApiError } from '@/server/auth/middlewar
  * GET /api/v1/members/:id — feature 1b · member record.
  *
  * Returns the member plus consent state, active pain flags and current assignment.
- * Visibility:
- *   - ops / clinic_admin / front_desk  → any member in their clinic
- *   - ortho / physio / trainer         → only members assigned to them
- * Cross-tenant or unassigned access returns NOT_FOUND (no existence leak).
+ * Visibility: every clinic role can open any member in their own clinic (matches the
+ * clinic-wide members list). Cross-tenant access returns NOT_FOUND (no existence leak).
  */
-const VIEW_ALL_ROLES = ['ops', 'clinic_admin', 'front_desk'];
+const VIEW_ALL_ROLES = ['ops', 'clinic_admin', 'front_desk', 'ortho', 'physio', 'trainer'];
 
 export const GET = withApiHandler(async (request, context) => {
   const user = await getAuthedUser(request);

@@ -1,9 +1,10 @@
 import { z } from 'zod';
+import { uuidish } from '@/server/validation';
 
 /** Zod schemas for the assessment endpoints (feature 1c-b). Pure — no DB/Next imports. */
 
 export const createAssessmentSchema = z.object({
-  member_id: z.string().uuid(),
+  member_id: uuidish,
   type: z.enum(['quick', 'deep']),
 });
 export type CreateAssessmentInput = z.infer<typeof createAssessmentSchema>;

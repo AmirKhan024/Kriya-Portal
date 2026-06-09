@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { uuidish } from '@/server/validation';
 import { db } from '@/server/db';
 import {
   members, pain_flags, program_instances, program_phases, program_items, games, program_templates,
@@ -12,7 +13,7 @@ import { emit } from '@/server/db/emit';
 import { computeGatingVerdict } from '@/server/clinical/pain-gate';
 
 const itemInputSchema = z.object({
-  game_id: z.string().uuid(),
+  game_id: uuidish,
   frequency_per_week: z.number().int().min(1).max(7).default(3),
 });
 
@@ -24,8 +25,8 @@ const phaseInputSchema = z.object({
 });
 
 const createProgramSchema = z.object({
-  source_template_id: z.string().uuid().optional(),
-  prescription_id: z.string().uuid().optional(),
+  source_template_id: uuidish.optional(),
+  prescription_id: uuidish.optional(),
   phases: z.array(phaseInputSchema).optional(),
 }).strict();
 

@@ -45,7 +45,18 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    await jwtVerify(token, accessKey());
+    const { payload } = await jwtVerify(token, accessKey());
+    const role = (payload as { role?: string }).role;
+
+    // Enforce portal boundaries by role so a valid session can't land on the
+    // wrong console (e.g. a clinic_admin opening /ops and hitting "Insufficient role").
+    if (pathname.startsWith('/ops') && role !== 'ops') {
+      return NextResponse.redirect(new URL('/clinic/members', request.url));
+    }
+    if (pathname.startsWith('/clinic') && role === 'ops') {
+      return NextResponse.redirect(new URL('/ops/clinics', request.url));
+    }
+
     return NextResponse.next();
   } catch {
     return NextResponse.redirect(new URL(

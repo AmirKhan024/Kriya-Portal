@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { uuidish } from '@/server/validation';
 import { db } from '@/server/db';
 import { branches, entitlements, users } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -13,7 +14,7 @@ const inviteSchema = z.object({
   name:      z.string().min(1).max(100),
   email:     z.string().email(),
   role:      z.enum(['clinic_admin', 'ortho', 'physio', 'trainer', 'front_desk']),
-  branch_id: z.string().uuid(),
+  branch_id: uuidish,
 });
 
 export const POST = withApiHandler(async (request, context) => {

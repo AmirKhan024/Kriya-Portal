@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { uuidish } from '@/server/validation';
 import { db } from '@/server/db';
 import { users, entitlements, member_assignments } from '@/server/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
@@ -10,7 +11,7 @@ import { emit } from '@/server/db/emit';
 
 const staffPatchSchema = z.object({
   status:      z.enum(['active', 'suspended']),
-  reassign_to: z.string().uuid().optional(),
+  reassign_to: uuidish.optional(),
 });
 
 export const PATCH = withApiHandler(async (request, context) => {

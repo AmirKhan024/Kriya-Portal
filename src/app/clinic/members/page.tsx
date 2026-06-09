@@ -179,7 +179,7 @@ function MembersPageInner() {
         </div>
         <Button
           variant="primary"
-          onClick={() => toast({ variant: 'info', title: 'Add Member via the Kriya app', message: 'Members are registered through the patient onboarding flow.' })}
+          onClick={() => router.push('/clinic/members/new')}
         >
           Add Member
         </Button>
@@ -242,7 +242,7 @@ function MembersPageInner() {
             <p className="text-slate-400 text-base">
               {hasFilters
                 ? 'No members match your filters. Try clearing the search.'
-                : 'No members yet. Members are added through the Kriya patient app.'}
+                : 'No members yet. Click “Add Member” to register one.'}
             </p>
           </div>
         ) : (

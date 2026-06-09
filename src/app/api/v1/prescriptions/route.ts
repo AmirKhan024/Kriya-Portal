@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { uuidish } from '@/server/validation';
 import { db } from '@/server/db';
 import {
   members, consents, assessments, category_scores, pain_flags,
@@ -14,8 +15,8 @@ import { runCDEPipeline } from '@/server/clinical/cde-pipeline';
 import { generatePrescriptionPDF } from '@/server/clinical/pdf-generator';
 
 const generateSchema = z.object({
-  member_id: z.string().uuid(),
-  assessment_id: z.string().uuid().optional(),
+  member_id: uuidish,
+  assessment_id: uuidish.optional(),
   notes: z.string().optional(),
 });
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { uuidish } from '@/server/validation';
 import {
   PAIN_REGIONS, PAIN_TYPES, SEGMENTS, SEXES, CONSENT_TYPES, CONSENT_METHODS,
 } from './constants';
@@ -41,12 +42,12 @@ export const createMemberSchema = z.object({
   mobile: mobileSchema,
   age: z.number().int().min(0).max(120).optional(),
   sex: z.enum(SEXES).optional(),
-  branch_id: z.string().uuid().optional(),
+  branch_id: uuidish.optional(),
   /** Optional — auto-derived from complaint presence when omitted (see deriveSegment). */
   segment: z.enum(SEGMENTS).optional(),
   complaint: z.string().trim().max(500).optional(),
   /** Clinician to assign to; defaults to the creating user when omitted. */
-  clinician_id: z.string().uuid().optional(),
+  clinician_id: uuidish.optional(),
   /** Quick pain map captured at creation (triage signal — gates scan safety later). */
   pain_map: z.array(painFlagInputSchema).max(20).optional(),
   /** Consent may be captured at creation or later via the consent endpoint. */
