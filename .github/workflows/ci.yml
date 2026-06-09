@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref (saves minutes on rapid pushes).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: typecheck · lint · test · build
+    runs-on: ubuntu-latest
+    env:
+      # Dummy values so `tsc`/`next build` don't choke on required env. No live DB is
+      # needed: the Postgres client is lazy (connects on first query, not at build),
+      # and the DB-gated tests skip unless RUN_DB_TESTS=true (not set here).
+      ACCESS_TOKEN_SECRET: ci_dummy_access_secret_change_in_production_xx
+      REFRESH_TOKEN_SECRET: ci_dummy_refresh_secret_change_in_production_x
+      INVITE_TOKEN_SECRET: ci_dummy_invite_secret_change_in_production_xx
+      ACCESS_TOKEN_TTL_SECONDS: '900'
+      REFRESH_TOKEN_TTL_SECONDS: '604800'
+      INVITE_TOKEN_TTL_SECONDS: '259200'
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci_dummy_anon_key
+      SUPABASE_SERVICE_ROLE_KEY: ci_dummy_service_role_key
+      DATABASE_URL: postgresql://user:pass@localhost:5432/postgres
+      GROQ_API_KEY: ci_dummy_groq_key
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install (clean, from lockfile)
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit + mocked tests (DB-gated suites auto-skip without RUN_DB_TESTS)
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  # OPTIONAL live-DB job — enable by adding a `DATABASE_URL` repo secret pointing at a
+  # disposable Supabase/Postgres (the session pooler). Runs the RUN_DB_TESTS suites serially.
+  db-tests:
+    name: live-DB tests (optional)
+    runs-on: ubuntu-latest
+    if: ${{ false }} # flip to: ${{ secrets.DATABASE_URL != '' }} once the secret is set
+    env:
+      RUN_DB_TESTS: 'true'
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
+      REFRESH_TOKEN_SECRET: ${{ secrets.REFRESH_TOKEN_SECRET }}
+      INVITE_TOKEN_SECRET: ${{ secrets.INVITE_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run test:db
