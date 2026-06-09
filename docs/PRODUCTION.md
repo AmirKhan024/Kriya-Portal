@@ -28,9 +28,10 @@ Create a real `.env.local` (never commit it; it's gitignored). All keys live in 
 | `DATABASE_URL` | Drizzle/Postgres | prod Supabase **session pooler** (5432), password URL-encoded, `?sslmode=require` |
 | `ACCESS_/REFRESH_/INVITE_TOKEN_SECRET` | JWT signing | **rotate** — generate fresh 32+ char secrets (`openssl rand -hex 32`). The dev ones in `.env.example` are placeholders. |
 | `*_TOKEN_TTL_SECONDS` | token lifetimes | keep defaults or tune |
-| `GROQ_API_KEY` | prescription LLM (Dev B) | console.groq.com |
-| `GUPSHUP_API_KEY` / `GUPSHUP_SOURCE` / `EXPO_ACCESS_TOKEN` / `SMS_PROVIDER_KEY` | nudges/reminders messaging | see §4 (stub until set) |
-| `MUX_TOKEN_ID` / `MUX_TOKEN_SECRET` / `MUX_WEBHOOK_SECRET` | care video | see §4 (stub until set) |
+| `GROQ_API_KEY` | prescription LLM | console.groq.com |
+| `TELEGRAM_BOT_TOKEN` | nudges + appointment reminders + prescription send | @BotFather → /newbot (see §4) |
+| `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | member "Connect Telegram" link | the bot @username, no @ |
+| `TELEGRAM_WEBHOOK_SECRET` | verify Telegram webhook calls | generate: `openssl rand -hex 32` |
 | `N8N_WEBHOOK_SECRET` | inactivity/reminder cron auth | see §4 |
 
 ## 3 · Production database 🔑
@@ -42,14 +43,16 @@ Create a real `.env.local` (never commit it; it's gitignored). All keys live in 
 5. Enable **automated backups** (Supabase dashboard) + a restore test.
 
 ## 4 · Fill the stubs (features that currently no-op) 🔑🧑‍💻
-Each is isolated and safe while unset (returns a stub, never throws). To go live, fill the keys **and**
-implement the one file:
-- **Messaging** — `src/modules/nudges/dispatch.ts` (+ `prescriptions/[id]/send/route.ts`):
-  implement Gupshup WhatsApp (approved templates) / Expo push / MSG91 (SMS) calls. Affects 2c Nudges,
-  2d appointment reminders, prescription send.
-- **Mux video** — `src/modules/videos/mux.ts`: real direct-upload (`@mux/mux-node`) + verify the webhook
-  signature with `MUX_WEBHOOK_SECRET`; set the Mux webhook to `POST /api/v1/webhooks/mux`.
-- **Automation (N8N / cron)** — nothing schedules `POST /api/v1/nudges/auto-scan` and
+Each is isolated and safe while unset (returns a stub, never throws). To go live, fill the keys:
+- **Messaging (Telegram)** — `src/modules/nudges/dispatch.ts` is fully implemented. Affects 2c Nudges,
+  2d appointment reminders, and prescription send (Option A — Telegram path). Steps:
+  1. Set `TELEGRAM_BOT_TOKEN` + `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` (create bot via @BotFather → /newbot).
+  2. After deploy: `node scripts/set-telegram-webhook.mjs https://<prod-url>` (registers the webhook once).
+  3. Members self-connect via the "Connect Telegram" button on their Nudges tab.
+- **Care video (Supabase Storage)** — `src/server/lib/supabase-storage.ts` is fully implemented (no Mux).
+  One-time: `node scripts/create-storage-bucket.mjs` (needs `SUPABASE_SERVICE_ROLE_KEY`; creates the
+  private `care-videos` bucket). No extra keys; uses the existing Supabase vars.
+- **Automation (N8N / Vercel Cron)** — nothing schedules `POST /api/v1/nudges/auto-scan` and
   `POST /api/v1/appointments/reminders-scan` yet. Wire an **N8N workflow or a Vercel Cron** to call them
   (T-24h/T-2h reminders + 48h inactivity). Gate with `N8N_WEBHOOK_SECRET`.
 - **Groq** — already real; just set `GROQ_API_KEY`.
@@ -66,8 +69,8 @@ implement the one file:
 ## 6 · Security & compliance (this is health data — required before real patients) 🏢🧑‍💻
 - **RLS**: app currently trusts the service-role connection + in-app role/tenant checks. For PHI, also
   enforce Postgres **Row-Level Security** (apply `rls.sql`, verify cross-tenant denial at the DB layer).
-- **Rate limiting**: auth routes (`/api/v1/auth/*`) and the public **Mux webhook** (`/api/v1/webhooks/mux`)
-  should be rate-limited; the webhook must reject bad signatures (already does when `MUX_WEBHOOK_SECRET` set).
+- **Rate limiting**: auth routes (`/api/v1/auth/*`) and the **Telegram webhook** (`/api/v1/webhooks/telegram`)
+  should be rate-limited; the Telegram webhook validates `TELEGRAM_WEBHOOK_SECRET` when set.
 - **Secrets**: rotate all token secrets (§2); never commit `.env.local`; rotate the **GitHub PAT used for
   the merge**.
 - **Monitoring**: add error tracking (Sentry) + structured logs + uptime checks.

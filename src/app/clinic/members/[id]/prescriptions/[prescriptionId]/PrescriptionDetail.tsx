@@ -159,7 +159,7 @@ export default function PrescriptionDetail({ prescription }: { prescription: Pre
                 <p className="text-red-400 text-xs mb-3">{sendError}</p>
               )}
               <div className="grid grid-cols-2 gap-2">
-                {(['whatsapp', 'sms', 'email', 'print'] as const).map(channel => (
+                {(['telegram', 'email', 'print'] as const).map(channel => (
                   <button
                     key={channel}
                     onClick={() => handleSend(channel)}
@@ -319,8 +319,7 @@ function LetterSection({
 
 function ChannelIcon({ channel }: { channel: string }) {
   const icons: Record<string, string> = {
-    whatsapp: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
-    sms: 'M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z',
+    telegram: 'M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5',
     email: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
     print: 'M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z',
   };
