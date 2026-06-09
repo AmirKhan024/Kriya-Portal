@@ -37,6 +37,7 @@ export const EVENT_LABELS: Record<EventType, string> = {
   'app.invited': 'App invite sent',
   'app.activated': 'App activated',
   'member.retained_30d': 'Retained 30 days',
+  'program_template.published': 'Program template published',
 };
 
 export function eventLabel(type: string): string {
