@@ -107,7 +107,7 @@ export function AppointmentsPanel({ memberId, clinicianId }: { memberId: string;
         ) : slots !== null && slots.length === 0 ? (
           <p className="text-sm text-slate-400">
             No free slots yet.{' '}
-            <a href="/availability" className="text-teal-400 hover:text-teal-300 underline">Set the clinician&apos;s availability →</a>
+            <a href="/clinic/availability" className="text-teal-400 hover:text-teal-300 underline">Set the clinician&apos;s availability →</a>
           </p>
         ) : (
           <div className="flex items-end gap-3 flex-wrap">

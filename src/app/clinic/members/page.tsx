@@ -87,7 +87,7 @@ function RowActions({ member }: { member: Member }) {
               View Program
             </button>
             <button
-              onClick={() => { setOpen(false); router.push(`/clinic/members/${member.id}/prescriptions`); }}
+              onClick={() => { setOpen(false); router.push(`/clinic/members/${member.id}?tab=Prescriptions`); }}
               className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
             >
               Prescriptions

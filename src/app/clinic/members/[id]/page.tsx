@@ -20,6 +20,7 @@ type PainFlag = { id: string; region: string; severity: number; type: string; ac
 type Scan = { id: string; type: string; status: string; musculage: number | null; created_at: string; completed_at: string | null };
 type Activity = { id: string; type: string; score: number | null; duration_sec: number | null; completed_at: string; game_name: string | null };
 type TrendPoint = { date: string; musculage: number };
+type Rx = { id: string; status: string; created_at: string; sent_at: string | null; pdf_url: string | null };
 type MemberDetail = {
   member: {
     id: string; name: string; mobile: string; age: number | null; sex: string | null;
@@ -48,6 +49,7 @@ function MemberRecord() {
   const [trends, setTrends] = useState<TrendPoint[]>([]);
   const [scans, setScans] = useState<Scan[] | null>(null);
   const [activities, setActivities] = useState<Activity[] | null>(null);
+  const [prescriptions, setPrescriptions] = useState<Rx[] | null>(null);
 
   async function load() {
     dbg('MemberRecord:load', { id });
@@ -68,6 +70,9 @@ function MemberRecord() {
       router.push('/clinic/login');
       return;
     }
+    // Deep-link support: ?tab=Prescriptions opens that tab (used by the members list row action).
+    const initialTab = new URLSearchParams(window.location.search).get('tab');
+    if (initialTab === 'Prescriptions') setTab('Prescriptions');
     load();
     apiClient.get<TrendPoint[]>(`/api/v1/members/${id}/trends`).then((r) => { if (r.data) setTrends(r.data); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -81,7 +86,10 @@ function MemberRecord() {
     if (tab === 'Activities' && activities === null) {
       apiClient.get<Activity[]>(`/api/v1/members/${id}/activities`).then((r) => setActivities(r.data ?? []));
     }
-  }, [tab, id, scans, activities]);
+    if (tab === 'Prescriptions' && prescriptions === null) {
+      apiClient.get<Rx[]>(`/api/v1/members/${id}/prescriptions`).then((r) => setPrescriptions(r.data ?? []));
+    }
+  }, [tab, id, scans, activities, prescriptions]);
 
   async function captureConsent() {
     setSavingConsent(true);
@@ -180,25 +188,22 @@ function MemberRecord() {
 
       {/* Tabs */}
       <div className="mt-6 flex gap-1 border-b border-white/10 overflow-x-auto">
-        {TABS.map((t) => {
-          const enabled = t === 'Overview' || t === 'Pain & Games' || t === 'Scans' || t === 'Activities' || t === 'Nudges' || t === 'Appointments' || t === 'Care Videos';
-          return (
-            <button
-              key={t}
-              disabled={!enabled}
-              onClick={() => enabled && setTab(t)}
-              title={enabled ? undefined : 'Available after assessment'}
-              className={[
-                'px-4 py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors',
-                tab === t ? 'border-teal-400 text-white'
-                  : enabled ? 'border-transparent text-slate-400 hover:text-white'
-                    : 'border-transparent text-slate-600 cursor-not-allowed',
-              ].join(' ')}
-            >
-              {t}
-            </button>
-          );
-        })}
+        {TABS.map((t) => (
+          <button
+            key={t}
+            onClick={() => {
+              // Care Program lives on its own builder page; the rest are in-record tabs.
+              if (t === 'Care Program') { router.push(`/clinic/members/${id}/program`); return; }
+              setTab(t);
+            }}
+            className={[
+              'px-4 py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors',
+              tab === t ? 'border-teal-400 text-white' : 'border-transparent text-slate-400 hover:text-white',
+            ].join(' ')}
+          >
+            {t}
+          </button>
+        ))}
       </div>
 
       {/* Tab body */}
@@ -318,6 +323,35 @@ function MemberRecord() {
         )}
 
         {tab === 'Care Videos' && <VideoAssignPanel memberId={id} />}
+
+        {tab === 'Prescriptions' && (
+          <Card title="Prescriptions">
+            {!canClinical ? (
+              <p className="text-sm text-slate-500">Capture consent, then use “Generate Prescription”.</p>
+            ) : prescriptions === null ? (
+              <p className="text-sm text-slate-500">Loading…</p>
+            ) : prescriptions.length === 0 ? (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-slate-500">No prescriptions yet.</p>
+                <Button size="sm" onClick={() => router.push(`/clinic/members/${id}/prescriptions/new`)}>Generate Prescription</Button>
+              </div>
+            ) : (
+              <ul className="flex flex-col divide-y divide-white/5">
+                {prescriptions.map((p) => (
+                  <li key={p.id}>
+                    <button
+                      onClick={() => router.push(`/clinic/members/${id}/prescriptions/${p.id}`)}
+                      className="w-full flex items-center justify-between py-2.5 px-1 text-sm rounded hover:bg-white/5 transition-colors"
+                    >
+                      <span className="text-slate-300">{new Date(p.created_at).toLocaleDateString()}</span>
+                      <Badge tone={p.status === 'sent' ? 'green' : 'amber'}>{p.status.replace('_', ' ')}</Badge>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        )}
       </div>
 
       {/* Capture consent modal */}
