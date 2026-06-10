@@ -14,6 +14,9 @@ import { emit } from '@/server/db/emit';
 import { runCDEPipeline } from '@/server/clinical/cde-pipeline';
 import { generatePrescriptionPDF } from '@/server/clinical/pdf-generator';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const generateSchema = z.object({
   member_id: uuidish,
   assessment_id: uuidish.optional(),

@@ -85,7 +85,11 @@ export function withApiHandler(
         };
         return NextResponse.json(body, { status: err.status });
       }
-      console.error('[API Error]', err);
+      console.error('[API Error] Unhandled exception', {
+        message: err instanceof Error ? err.message : String(err),
+        name: err instanceof Error ? err.name : 'Unknown',
+        stack: err instanceof Error ? err.stack : undefined,
+      });
       const body: ApiResponse<null> = {
         data: null,
         error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },

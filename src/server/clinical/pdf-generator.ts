@@ -98,7 +98,7 @@ export async function generatePrescriptionPDF(input: PrescriptionPDFInput): Prom
     if (eligibleGames.length + modifiedGames.length > 0) {
       doc.fontSize(9).fillColor(DARK);
       for (const g of [...eligibleGames, ...modifiedGames]) {
-        const marker = g.verdict === 'eligible' ? '✓' : '~';
+        const marker = g.verdict === 'eligible' ? '[OK]' : '[~]';
         const note = g.modifications ? ` (${g.modifications})` : '';
         doc.text(`${marker} ${g.game_name}${note}`, 70, doc.y + 4);
       }
@@ -108,7 +108,7 @@ export async function generatePrescriptionPDF(input: PrescriptionPDFInput): Prom
       doc.fontSize(10).fillColor('#dc2626').text('Locked until reassessment:', 60, doc.y + 12);
       doc.fontSize(9).fillColor(GRAY);
       for (const g of blockedGames) {
-        doc.text(`✗ ${g.game_name} — ${g.reason}`, 70, doc.y + 4);
+        doc.text(`[X] ${g.game_name} — ${g.reason}`, 70, doc.y + 4);
       }
     }
 

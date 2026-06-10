@@ -16,21 +16,22 @@ async function extractFindings(input: {
   painFlags: { region: string; severity: number; type: string }[];
   memberAge: number;
 }): Promise<StructuredFindings> {
-  const response = await groq.chat.completions.create({
-    model: GROQ_MODEL,
-    max_tokens: 800,
-    temperature: 0,
-    messages: [
-      {
-        role: 'system',
-        content: `You are a clinical data extraction assistant for a physiotherapy platform.
+  try {
+    const response = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      max_tokens: 800,
+      temperature: 0,
+      messages: [
+        {
+          role: 'system',
+          content: `You are a clinical data extraction assistant for a physiotherapy platform.
 Extract structured clinical information from the patient data provided.
 Return ONLY valid JSON matching the schema exactly. No prose, no markdown, no explanation.
 Never diagnose. Never recommend treatment. Only extract what is explicitly present in the data.`,
-      },
-      {
-        role: 'user',
-        content: `Extract clinical findings from this patient data:
+        },
+        {
+          role: 'user',
+          content: `Extract clinical findings from this patient data:
 
 COMPLAINT: ${input.complaint}
 AGE: ${input.memberAge}
@@ -49,15 +50,13 @@ Return JSON matching this schema exactly:
   "aggravating_factors": ["string"],
   "relieving_factors": ["string"]
 }`,
-      },
-    ],
-  });
-
-  const text = response.choices[0]?.message?.content ?? '{}';
-  try {
+        },
+      ],
+    });
+    const text = response.choices[0]?.message?.content ?? '{}';
     return JSON.parse(text.replace(/```json|```/g, '').trim()) as StructuredFindings;
-  } catch {
-    // Deterministic fallback: derive from pain flags so safety is never compromised
+  } catch (err) {
+    console.error('[CDE] extractFindings fell back to deterministic findings:', err instanceof Error ? err.message : err);
     return {
       regions: input.painFlags.map(f => f.region),
       pain_severity: input.painFlags.reduce((max, f) => Math.max(max, f.severity), 0),
@@ -95,22 +94,23 @@ async function formatLetterProse(input: {
   const { memberName, memberAge, clinicName, clinicianName, findings,
     treeWalkerOutput, eligibleGames, blockedGames, modifiedGames } = input;
 
-  const response = await groq.chat.completions.create({
-    model: GROQ_MODEL,
-    max_tokens: 1200,
-    temperature: 0,
-    messages: [
-      {
-        role: 'system',
-        content: `You are a clinical letter writing assistant for a physiotherapy clinic.
+  try {
+    const response = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      max_tokens: 1200,
+      temperature: 0,
+      messages: [
+        {
+          role: 'system',
+          content: `You are a clinical letter writing assistant for a physiotherapy clinic.
 Write professional, warm, and clear clinical letter sections.
 Return ONLY valid JSON. No markdown, no prose outside the JSON.
 Use clear language suitable for both clinicians and patients.
 Never add contraindications or game restrictions that are not in the input data.`,
-      },
-      {
-        role: 'user',
-        content: `Write these sections for a clinical letter for ${memberName}, age ${memberAge}.
+        },
+        {
+          role: 'user',
+          content: `Write these sections for a clinical letter for ${memberName}, age ${memberAge}.
 Clinic: ${clinicName}. Clinician: ${clinicianName}.
 
 CLINICAL DATA (do not add to or modify the safety content):
@@ -132,14 +132,13 @@ Return JSON with these keys (each value is 1-3 sentences, professional clinical 
   "program_rationale_prose": "Why this exercise approach was chosen for this patient",
   "safety_note_prose": "Safety note reminding patient this complements, not replaces, in-clinic care"
 }`,
-      },
-    ],
-  });
-
-  const text = response.choices[0]?.message?.content ?? '{}';
-  try {
+        },
+      ],
+    });
+    const text = response.choices[0]?.message?.content ?? '{}';
     return JSON.parse(text.replace(/```json|```/g, '').trim()) as ProseSections;
-  } catch {
+  } catch (err) {
+    console.error('[CDE] formatLetterProse fell back to deterministic prose:', err instanceof Error ? err.message : err);
     return {
       findings_prose: `${memberName} presents with ${findings.primary_complaint} affecting the ${findings.regions.join(' and ')} with a pain severity of ${findings.pain_severity}/10.`,
       impression_prose: treeWalkerOutput.dx_summary,
